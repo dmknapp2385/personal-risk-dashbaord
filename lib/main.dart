@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'pages/dashboard_page.dart';
+
 void main() {
   runApp(const RiskDashboardApp());
 }
@@ -14,9 +16,13 @@ class RiskDashboardApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2563EB)),
+        brightness: Brightness.light,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF2563EB),
+          brightness: Brightness.light,
+        ),
       ),
-      home: const HomePage(),
+      home: const DashboardPage(),
     );
   }
 }
