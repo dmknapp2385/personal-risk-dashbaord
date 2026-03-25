@@ -48,7 +48,7 @@ class _LocationRowState extends State<LocationRow> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Location (for crime assessment later)',
+          'Location (for local safety context later)',
           style: theme.textTheme.titleMedium,
         ),
         const SizedBox(height: 6),

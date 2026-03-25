@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../utils/risk_score.dart';
+
 class CategorySection extends StatelessWidget {
   const CategorySection({
     super.key,
@@ -9,6 +11,7 @@ class CategorySection extends StatelessWidget {
     required this.levels,
     required this.onLevelChanged,
     required this.scaleLabels,
+    this.showFactorImpactSection = true,
   });
 
   final String title;
@@ -17,6 +20,9 @@ class CategorySection extends StatelessWidget {
   final List<int> levels;
   final void Function(int index, int newLevel) onLevelChanged;
   final List<String> scaleLabels;
+
+  /// When false, hides “Impact by sub-category”, mini bars, and summary line.
+  final bool showFactorImpactSection;
 
   static const Color _lowColor = Color(0xFF16A34A); // green
   static const Color _highColor = Color(0xFFDC2626); // red
@@ -40,7 +46,7 @@ class CategorySection extends StatelessWidget {
     return 'Very High';
   }
 
-  int get _riskScore => (1 + _t * (1000 - 1)).round().clamp(1, 1000);
+  double get _riskScore => RiskScore.fromNorm(_t);
 
   String get _riskLabel {
     final score = _riskScore;
@@ -84,7 +90,7 @@ class CategorySection extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '$_riskScore / 1000',
+                      '${RiskScore.format(_riskScore)} / 1000',
                       style: theme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w800,
                         color: _riskColor,
@@ -107,43 +113,48 @@ class CategorySection extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          for (int i = 0; i < factorLabels.length; i++)
-            _FactorSegmentedQuestion(
+          ...List<Widget>.generate(factorLabels.length, (i) {
+            final factorIndex = i;
+            return _FactorSegmentedQuestion(
               question: factorLabels[i],
               level: levels[i],
-              onLevelChanged: (newLevel) => onLevelChanged(i, newLevel),
+              onLevelChanged: (newLevel) =>
+                  onLevelChanged(factorIndex, newLevel),
               scaleLabels: scaleLabels,
+            );
+          }),
+          if (showFactorImpactSection) ...[
+            const SizedBox(height: 12),
+            Text(
+              'Impact by sub-category',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: cs.onSurfaceVariant,
+              ),
             ),
-          const SizedBox(height: 12),
-          Text(
-            'Impact by sub-category',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: cs.onSurfaceVariant,
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 12,
+              runSpacing: 10,
+              children: [
+                for (int i = 0; i < factorLabels.length; i++)
+                  _MiniImpactBar(
+                    label: factorLabels[i],
+                    level: levels[i],
+                    scaleLabels: scaleLabels,
+                    contributionPct: levelsSum == 0
+                        ? 0
+                        : (levels[i] / levelsSum * 100).round(),
+                  ),
+              ],
             ),
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 12,
-            runSpacing: 10,
-            children: [
-              for (int i = 0; i < factorLabels.length; i++)
-                _MiniImpactBar(
-                  label: factorLabels[i],
-                  level: levels[i],
-                  scaleLabels: scaleLabels,
-                  contributionPct: levelsSum == 0
-                      ? 0
-                      : (levels[i] / levelsSum * 100).round(),
-                ),
-            ],
-          ),
-          const SizedBox(height: 2),
-          Text(
-            'Overall category impact: $_impactLabel',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: cs.onSurfaceVariant,
+            const SizedBox(height: 2),
+            Text(
+              'Overall category impact: $_impactLabel',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: cs.onSurfaceVariant,
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
