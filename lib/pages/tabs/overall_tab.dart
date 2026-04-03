@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../models/driver_factor.dart';
 import '../../models/home_category_score.dart';
+import '../../models/risk_category.dart';
+import '../../utils/category_risk_bar_colors.dart';
+import '../../utils/risk_score.dart';
+import '../widgets/overall_score_category_bar.dart';
 
 class OverallTab extends StatelessWidget {
   const OverallTab({
@@ -9,20 +13,26 @@ class OverallTab extends StatelessWidget {
     required this.overallScore,
     required this.categoryScores,
     required this.topDrivers,
+    required this.onOpenCategory,
   });
 
-  final int overallScore;
+  final double overallScore;
   final List<HomeCategoryScore> categoryScores;
   final List<DriverFactor> topDrivers;
+  final void Function(RiskCategory category) onOpenCategory;
 
   @override
   Widget build(BuildContext context) {
     return ListView(
       children: [
-        OverallRiskCard(score: overallScore),
+        OverallRiskCard(
+          score: overallScore,
+          categoryScores: categoryScores,
+          onOpenCategory: onOpenCategory,
+        ),
         const SizedBox(height: 16),
         Text(
-          'Quick category snapshot (tap to edit)',
+          'Quick category snapshot (tap to open)',
           style: Theme.of(context).textTheme.titleLarge,
         ),
         const SizedBox(height: 10),
@@ -32,9 +42,8 @@ class OverallTab extends StatelessWidget {
           children: [
             for (final c in categoryScores)
               CategoryMiniRiskBar(
-                label: c.label,
-                score: c.score,
-                tabIndex: c.tabIndex,
+                score: c,
+                onOpenCategory: onOpenCategory,
               ),
           ],
         ),
@@ -48,7 +57,11 @@ class OverallTab extends StatelessWidget {
           spacing: 12,
           runSpacing: 10,
           children: [
-            for (final d in topDrivers) TopDriverChip(driver: d),
+            for (final d in topDrivers)
+              TopDriverChip(
+                driver: d,
+                onOpenCategory: onOpenCategory,
+              ),
           ],
         ),
       ],
@@ -57,14 +70,21 @@ class OverallTab extends StatelessWidget {
 }
 
 class OverallRiskCard extends StatelessWidget {
-  const OverallRiskCard({super.key, required this.score});
+  const OverallRiskCard({
+    super.key,
+    required this.score,
+    required this.categoryScores,
+    required this.onOpenCategory,
+  });
 
-  final int score;
+  final double score;
+  final List<HomeCategoryScore> categoryScores;
+  final void Function(RiskCategory category) onOpenCategory;
 
   static const Color _lowColor = Color(0xFF16A34A); // green
   static const Color _highColor = Color(0xFFDC2626); // red
 
-  double get _t => (score - 1) / (1000 - 1); // 0..1
+  double get _t => RiskScore.normalizedT(score);
 
   Color get _riskColor => Color.lerp(_lowColor, _highColor, _t)!;
 
@@ -80,7 +100,6 @@ class OverallRiskCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final t = _t;
     final riskColor = _riskColor;
 
     return ClipRRect(
@@ -118,7 +137,7 @@ class OverallRiskCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  '$score',
+                  RiskScore.format(score),
                   style: theme.textTheme.displaySmall?.copyWith(
                     fontWeight: FontWeight.w800,
                     color: riskColor,
@@ -137,16 +156,17 @@ class OverallRiskCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            LinearProgressIndicator(
-              value: t,
-              minHeight: 10,
-              borderRadius: BorderRadius.circular(999),
-              valueColor: AlwaysStoppedAnimation<Color>(riskColor),
-              backgroundColor: cs.outlineVariant.withOpacity(0.35),
+            SizedBox(
+              width: double.infinity,
+              child: OverallScoreCategoryBar(
+                overallScore: score,
+                categoryScores: categoryScores,
+                onOpenCategory: onOpenCategory,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
-              '1 = very low risk (green) • 1000 = very high risk (red)',
+              'Bar length is 0–1000; fill stops at your score. Colors split that fill by category share.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: cs.onSurfaceVariant,
               ),
@@ -161,36 +181,19 @@ class OverallRiskCard extends StatelessWidget {
 class CategoryMiniRiskBar extends StatelessWidget {
   const CategoryMiniRiskBar({
     super.key,
-    required this.label,
     required this.score,
-    required this.tabIndex,
+    required this.onOpenCategory,
   });
 
-  final String label;
-  final int score;
-  final int tabIndex;
-
-  static const Color _lowColor = Color(0xFF16A34A); // green
-  static const Color _highColor = Color(0xFFDC2626); // red
-
-  double get _t => (score - 1) / (1000 - 1); // 0..1
-
-  Color get _riskColor => Color.lerp(_lowColor, _highColor, _t)!;
+  final HomeCategoryScore score;
+  final void Function(RiskCategory category) onOpenCategory;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    void go() {
-      DefaultTabController.of(context).animateTo(
-        tabIndex,
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOut,
-      );
-    }
-
     return InkWell(
-      onTap: go,
+      onTap: () => onOpenCategory(score.category),
       borderRadius: BorderRadius.circular(16),
       child: SizedBox(
         width: 220,
@@ -203,15 +206,16 @@ class CategoryMiniRiskBar extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    label,
+                    score.label,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
                   ),
                   Text(
-                    '$score/1000',
+                    '${RiskScore.format(score.score)}/1000',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: cs.onSurfaceVariant,
+                          fontFeatures: const [FontFeature.tabularFigures()],
                         ),
                   ),
                 ],
@@ -221,10 +225,10 @@ class CategoryMiniRiskBar extends StatelessWidget {
                 height: 10,
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: _riskColor.withOpacity(0.16 + 0.65 * _t),
+                  color: CategoryRiskBarColors.fillForScore(score.score),
                   borderRadius: BorderRadius.circular(999),
                   border: Border.all(
-                    color: _riskColor.withOpacity(0.7),
+                    color: CategoryRiskBarColors.borderForScore(score.score),
                   ),
                 ),
               ),
@@ -237,9 +241,14 @@ class CategoryMiniRiskBar extends StatelessWidget {
 }
 
 class TopDriverChip extends StatelessWidget {
-  const TopDriverChip({super.key, required this.driver});
+  const TopDriverChip({
+    super.key,
+    required this.driver,
+    required this.onOpenCategory,
+  });
 
   final DriverFactor driver;
+  final void Function(RiskCategory category) onOpenCategory;
 
   static const _scaleLabels = ['VL', 'L', 'M', 'H', 'VH'];
 
@@ -256,13 +265,7 @@ class TopDriverChip extends StatelessWidget {
     final tabLabel = _scaleLabels[driver.level.clamp(0, 4)];
 
     return InkWell(
-      onTap: () {
-        DefaultTabController.of(context).animateTo(
-          driver.tabIndex,
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeOut,
-        );
-      },
+      onTap: () => onOpenCategory(driver.category),
       borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.all(10),
@@ -306,4 +309,3 @@ class TopDriverChip extends StatelessWidget {
     );
   }
 }
-

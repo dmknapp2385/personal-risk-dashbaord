@@ -1,12 +1,14 @@
+import 'risk_category.dart';
+
 class HomeCategoryScore {
   const HomeCategoryScore({
     required this.label,
     required this.score,
-    required this.tabIndex,
+    required this.category,
   });
 
   final String label;
-  final int score;
-  final int tabIndex;
+  final double score;
+  final RiskCategory category;
 }
 

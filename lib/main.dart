@@ -1148,13 +1148,16 @@ class _CategorySection extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          for (int i = 0; i < factorLabels.length; i++)
-            _FactorSegmentedQuestion(
+          ...List<Widget>.generate(factorLabels.length, (i) {
+            final factorIndex = i;
+            return _FactorSegmentedQuestion(
               question: factorLabels[i],
               level: levels[i],
-              onLevelChanged: (newLevel) => onLevelChanged(i, newLevel),
+              onLevelChanged: (newLevel) =>
+                  onLevelChanged(factorIndex, newLevel),
               scaleLabels: scaleLabels,
-            ),
+            );
+          }),
           const SizedBox(height: 12),
           Text(
             'Impact by sub-category',
