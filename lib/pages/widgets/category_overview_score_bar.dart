@@ -3,47 +3,32 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart' show Ticker;
 
+import '../../models/category_overview_slice.dart';
 import '../../utils/category_risk_bar_colors.dart';
 import '../../utils/risk_score.dart';
 
-/// One row in the financial overview bar + hover card.
-class FinancialOverviewBarSlice {
-  const FinancialOverviewBarSlice({
-    required this.title,
-    required this.share,
-    required this.riskScore,
-    required this.factorLabels,
-    required this.factorLevels,
-  });
-
-  final String title;
-  final double share;
-  /// 0–1000, from average factor levels in this subcategory (same norm as category score).
-  final double riskScore;
-  final List<String> factorLabels;
-  final List<int> factorLevels;
-}
-
-/// 0–1000 track; fill = [overallScore]. Segments use [CategoryRiskBarColors] from each
-/// subcategory’s local risk (matches home “mini bar” logic). Hover shows factors + levels.
-class FinancialOverviewScoreBar extends StatefulWidget {
-  const FinancialOverviewScoreBar({
+/// 0–1000 track; fill = [overallScore]. Segments use [CategoryRiskBarColors].
+/// Hover shows factor lines when slices include them.
+class CategoryOverviewScoreBar extends StatefulWidget {
+  const CategoryOverviewScoreBar({
     super.key,
     required this.overallScore,
     required this.slices,
+    required this.caption,
     this.scaleLabels = const ['VL', 'L', 'M', 'H', 'VH'],
   });
 
   final double overallScore;
-  final List<FinancialOverviewBarSlice> slices;
+  final List<CategoryOverviewBarSlice> slices;
+  final String caption;
   final List<String> scaleLabels;
 
   @override
-  State<FinancialOverviewScoreBar> createState() =>
-      _FinancialOverviewScoreBarState();
+  State<CategoryOverviewScoreBar> createState() =>
+      _CategoryOverviewScoreBarState();
 }
 
-class _FinancialOverviewScoreBarState extends State<FinancialOverviewScoreBar>
+class _CategoryOverviewScoreBarState extends State<CategoryOverviewScoreBar>
     with SingleTickerProviderStateMixin {
   static const _barHeight = 26.0;
   static const _cardWidth = 300.0;
@@ -237,7 +222,7 @@ class _FinancialOverviewScoreBarState extends State<FinancialOverviewScoreBar>
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Weighted share inside your score (hover for factors · same colors as risk level below)',
+              widget.caption,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: cs.onSurfaceVariant,
               ),
@@ -266,7 +251,7 @@ class _FinancialOverviewScoreBarState extends State<FinancialOverviewScoreBar>
                       height: _barHeight,
                       child: fillW <= 0 || slices.isEmpty
                           ? const SizedBox.shrink()
-                          : _FilledFinancialSegmentRow(
+                          : _FilledSegmentRow(
                               fillWidth: fillW,
                               height: _barHeight,
                               slices: slices,
@@ -312,8 +297,8 @@ class _FinancialOverviewScoreBarState extends State<FinancialOverviewScoreBar>
   }
 }
 
-class _FilledFinancialSegmentRow extends StatelessWidget {
-  const _FilledFinancialSegmentRow({
+class _FilledSegmentRow extends StatelessWidget {
+  const _FilledSegmentRow({
     required this.fillWidth,
     required this.height,
     required this.slices,
@@ -324,7 +309,7 @@ class _FilledFinancialSegmentRow extends StatelessWidget {
 
   final double fillWidth;
   final double height;
-  final List<FinancialOverviewBarSlice> slices;
+  final List<CategoryOverviewBarSlice> slices;
   final List<double> shares;
   final void Function(int index) onHoverEnter;
   final VoidCallback onHoverExit;
@@ -395,7 +380,7 @@ class _SliceHoverPreview extends StatelessWidget {
     required this.scaleLabels,
   });
 
-  final FinancialOverviewBarSlice slice;
+  final CategoryOverviewBarSlice slice;
   final String shareLabel;
   final List<String> scaleLabels;
 

@@ -46,6 +46,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         _c.insuranceAssetCoverage,
                       ],
                       onHealthFactorChanged: _c.setInsuranceFactor,
+                      overallScore: _c.healthRiskScore,
                     ),
                   );
                 case RiskCategory.career:
@@ -60,6 +61,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         _c.climateResilience,
                       ],
                       onCareerFactorChanged: _c.setClimateFactor,
+                      overallScore: _c.careerRiskScore,
                     ),
                   );
                 case RiskCategory.financial:
@@ -83,6 +85,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       ],
                       onLocationChanged: _c.setCrimeLocationInput,
                       onSafetyFactorChanged: _c.setCrimeFactor,
+                      overallScore: _c.personalSafetyRiskScore,
                     ),
                   );
                 case RiskCategory.digitalPrivacy:
@@ -97,6 +100,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         _c.digitalOversharing,
                       ],
                       onDigitalFactorChanged: _c.setDigitalFactor,
+                      overallScore: _c.digitalPrivacyRiskScore,
                     ),
                   );
               }
