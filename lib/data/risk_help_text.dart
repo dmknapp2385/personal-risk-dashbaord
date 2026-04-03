@@ -32,9 +32,21 @@ abstract final class RiskHelpText {
     'Personal Safety':
         'Your exposure to crime, theft, and personal harm where you live and spend time. '
         'It reflects how you perceive risk, not official crime statistics.',
-    'Digital / Privacy':
-        'Your exposure to scams, account theft, weak security, and oversharing online. '
-        'High risk means more ways something digital could go wrong.',
+    'Identity & authentication':
+        'How strong your logins are: passwords, MFA, recovery options, and whether '
+        'credentials are shared or reused. Weak spots here make takeover much easier.',
+    'Phishing & social engineering':
+        'How often you are targeted by fake messages, calls, or pressure tactics. '
+        'Higher exposure means more chances someone tricks you into giving access.',
+    'Data exposure & account hygiene':
+        'Past leaks, password reuse, and where sensitive data lives (email, drives, chats). '
+        'Poor hygiene means one incident spreads across accounts.',
+    'Devices & networks':
+        'Locks, encryption, updates, and the networks you trust. '
+        'Outdated devices or risky Wi‑Fi increase malware and snooping risk.',
+    'Privacy & footprint':
+        'What you reveal publicly online, tracking, and app permissions. '
+        'A large footprint gives scammers and advertisers more to work with.',
   };
 
   static const Map<String, String> _factor = {
@@ -128,20 +140,41 @@ abstract final class RiskHelpText {
         'Risk of break-ins, theft, or property crime affecting you or your home.',
     'Personal violence exposure':
         'Your sense of risk of physical harm or violence directed at you in daily life.',
-    // Digital / privacy
-    'Password & MFA hygiene':
-        'Strength and reuse of passwords and whether you use two-factor authentication. '
-        'Weak habits make account takeover easier.',
-    'Phishing & scams exposure':
-        'How often you face fake emails, texts, or calls trying to steal info or money. '
-        'Higher exposure means more chances to slip up.',
-    'Data breach & account reuse':
-        'Past leaks and using the same password on many sites. Reuse means one breach '
-        'can unlock multiple accounts.',
-    'Device & network security':
-        'Phones, laptops, updates, and Wi‑Fi safety. Outdated or public networks increase '
-        'chance of snooping or malware.',
-    'Oversharing & trace footprint':
-        'How much personal detail you put online where strangers or scammers can use it.',
+    // Digital / privacy (sub-factors)
+    'Password & MFA strength':
+        'How hard your passwords are to guess and whether MFA protects important accounts.',
+    'Recovery & backup codes':
+        'Whether recovery email, codes, or backup methods could let an attacker in '
+        'if your phone or inbox is compromised.',
+    'Shared or reused credentials':
+        'Family logins, shared streaming accounts, or the same password on many sites. '
+        'Sharing multiplies who can access what.',
+    'Email & SMS phishing exposure':
+        'Volume and realism of fake links and messages you see. More exposure means '
+        'more opportunities to click the wrong thing.',
+    'Phone & voice scam exposure':
+        'Robocalls, fake support, and impersonation over the phone or voicemail.',
+    'Urgency or impersonation attempts':
+        'Messages that rush you (“act now”) or pretend to be your bank, employer, or IRS. '
+        'These tactics bypass careful thinking.',
+    'Breach history & leaked passwords':
+        'Whether your accounts or emails have appeared in known leaks. Past leaks raise '
+        'reuse and credential-stuffing risk.',
+    'Cross-site password reuse':
+        'Using the same password across shopping, email, and work. One breach can cascade.',
+    'Sensitive data in email or storage':
+        'Tax docs, IDs, or secrets sitting in email, cloud folders, or unencrypted drives.',
+    'Device lock & encryption':
+        'Screen locks, full-disk encryption, and what happens if a device is lost or stolen.',
+    'Software updates & patching':
+        'How current OS and apps are. Skipped updates leave known holes open.',
+    'Public Wi‑Fi & untrusted networks':
+        'Coffee-shop Wi‑Fi, hotel networks, or unknown hotspots where traffic can be watched.',
+    'Social & public oversharing':
+        'Personal details visible on social profiles, forums, or public posts scammers mine.',
+    'Location & tracking exposure':
+        'Location sharing, ad tracking, and apps that always know where you are.',
+    'Third‑party app permissions':
+        'Camera, contacts, and broad access granted to apps you barely use.',
   };
 }

@@ -6,6 +6,7 @@ import '../../models/risk_category.dart';
 import '../../utils/category_risk_bar_colors.dart';
 import '../../utils/risk_score.dart';
 import '../widgets/overall_score_category_bar.dart';
+import '../widgets/top_drivers_next_steps_section.dart';
 
 class OverallTab extends StatelessWidget {
   const OverallTab({
@@ -63,6 +64,11 @@ class OverallTab extends StatelessWidget {
                 onOpenCategory: onOpenCategory,
               ),
           ],
+        ),
+        const SizedBox(height: 20),
+        TopDriversNextStepsSection(
+          topDrivers: topDrivers,
+          onOpenCategory: onOpenCategory,
         ),
       ],
     );

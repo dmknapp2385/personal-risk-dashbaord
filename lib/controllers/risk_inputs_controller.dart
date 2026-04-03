@@ -1,6 +1,9 @@
 import 'package:flutter/foundation.dart';
 
+import '../data/digital_privacy_subcategories.dart';
 import '../data/financial_subcategories.dart';
+import '../engine/digital_privacy_risk_engine.dart';
+import '../engine/digital_privacy_risk_types.dart';
 import '../engine/financial_risk_engine.dart';
 import '../engine/financial_risk_types.dart';
 import '../models/driver_factor.dart';
@@ -33,11 +36,14 @@ class RiskInputsController extends ChangeNotifier {
   int climateStorm = 2;
   int climateResilience = 1;
 
-  int digitalPasswordHygiene = 2;
-  int digitalPhishingExposure = 1;
-  int digitalBreachExposure = 1;
-  int digitalDeviceSecurity = 2;
-  int digitalOversharing = 1;
+  /// One level per digital sub-factor (0..4); see [kDigitalPrivacySubcategoryDefs].
+  List<int> digitalFactorLevels = [
+    2, 1, 1, // identity & authentication
+    2, 1, 1, // phishing & social engineering
+    2, 1, 1, // data exposure & account hygiene
+    2, 1, 1, // devices & networks
+    2, 1, 1, // privacy & footprint
+  ];
 
   String crimeLocationInput = '';
 
@@ -45,11 +51,24 @@ class RiskInputsController extends ChangeNotifier {
   final FinancialRiskEngine _financialEngine = FinancialRiskEngine();
   FinancialRiskResult? _financialRiskCache;
 
+  final DigitalPrivacyAdaptiveState _digitalAdaptive =
+      DigitalPrivacyAdaptiveState.initial();
+  final DigitalPrivacyRiskEngine _digitalEngine = DigitalPrivacyRiskEngine();
+  DigitalPrivacyRiskResult? _digitalRiskCache;
+
   @override
   void notifyListeners() {
     _financialRiskCache = null;
+    _digitalRiskCache = null;
     super.notifyListeners();
   }
+
+  /// Flat average of digital factor levels (0–1). Used in financial cross-signals
+  /// so the two engines do not depend on each other's composite scores.
+  double get _peerDigitalNormForFinancial => _avgNorm(digitalFactorLevels);
+
+  /// Flat average of financial factor levels (0–1). Used in digital cross-signals.
+  double get _peerFinancialNormForDigital => _avgNorm(financialFactorLevels);
 
   FinancialRiskResult get financialRiskResult {
     _financialRiskCache ??= _financialEngine.evaluate(
@@ -59,12 +78,28 @@ class RiskInputsController extends ChangeNotifier {
           healthNorm: insuranceNorm,
           careerNorm: climateNorm,
           safetyNorm: crimeNorm,
-          digitalNorm: digitalNorm,
+          digitalNorm: _peerDigitalNormForFinancial,
         ),
       ),
       _financialAdaptive,
     );
     return _financialRiskCache!;
+  }
+
+  DigitalPrivacyRiskResult get digitalRiskResult {
+    _digitalRiskCache ??= _digitalEngine.evaluate(
+      DigitalPrivacyRiskInputs(
+        factorLevels: digitalFactorLevels,
+        cross: DigitalPeerCrossSignals(
+          financialNorm: _peerFinancialNormForDigital,
+          healthNorm: insuranceNorm,
+          careerNorm: climateNorm,
+          safetyNorm: crimeNorm,
+        ),
+      ),
+      _digitalAdaptive,
+    );
+    return _digitalRiskCache!;
   }
 
   double _avgNorm(List<int> levels) {
@@ -97,13 +132,8 @@ class RiskInputsController extends ChangeNotifier {
         climateResilience,
       ]);
 
-  double get digitalNorm => _avgNorm([
-        digitalPasswordHygiene,
-        digitalPhishingExposure,
-        digitalBreachExposure,
-        digitalDeviceSecurity,
-        digitalOversharing,
-      ]);
+  /// Latent stress \[0,1\] from the digital / privacy risk engine.
+  double get digitalNorm => digitalRiskResult.pointNorm;
 
   double get overallRiskScore {
     final normalized =
@@ -123,8 +153,15 @@ class RiskInputsController extends ChangeNotifier {
   /// Per–sub-category scores on 0–1000 (for segment coloring).
   List<double> get financialSubcategoryScores =>
       financialRiskResult.subcategoryScores;
+
+  List<double> get digitalSubcategoryShares =>
+      digitalRiskResult.subcategoryShare;
+
+  List<double> get digitalSubcategoryScores =>
+      digitalRiskResult.subcategoryScores;
+
   double get personalSafetyRiskScore => RiskScore.fromNorm(crimeNorm);
-  double get digitalPrivacyRiskScore => RiskScore.fromNorm(digitalNorm);
+  double get digitalPrivacyRiskScore => digitalRiskResult.pointScore;
 
   List<DriverFactor> get topDrivers {
     const healthLabels = [
@@ -146,13 +183,7 @@ class RiskInputsController extends ChangeNotifier {
       'Property / theft exposure',
       'Personal violence exposure',
     ];
-    const digitalLabels = [
-      'Password & MFA hygiene',
-      'Phishing & scams exposure',
-      'Data breach & account reuse',
-      'Device & network security',
-      'Oversharing & trace footprint',
-    ];
+    final digitalLabels = kDigitalPrivacyAllFactorLabels;
 
     final factors = <DriverFactor>[
       for (int i = 0; i < healthLabels.length; i++)
@@ -197,13 +228,7 @@ class RiskInputsController extends ChangeNotifier {
       for (int i = 0; i < digitalLabels.length; i++)
         DriverFactor(
           label: digitalLabels[i],
-          level: [
-            digitalPasswordHygiene,
-            digitalPhishingExposure,
-            digitalBreachExposure,
-            digitalDeviceSecurity,
-            digitalOversharing,
-          ][i],
+          level: digitalFactorLevels[i],
           category: RiskCategory.digitalPrivacy,
         ),
     ];
@@ -276,24 +301,8 @@ class RiskInputsController extends ChangeNotifier {
   }
 
   void setDigitalFactor(int index, int level) {
-    final v = level.clamp(0, 4);
-    switch (index) {
-      case 0:
-        digitalPasswordHygiene = v;
-        break;
-      case 1:
-        digitalPhishingExposure = v;
-        break;
-      case 2:
-        digitalBreachExposure = v;
-        break;
-      case 3:
-        digitalDeviceSecurity = v;
-        break;
-      case 4:
-        digitalOversharing = v;
-        break;
-    }
+    if (index < 0 || index >= digitalFactorLevels.length) return;
+    digitalFactorLevels[index] = level.clamp(0, 4);
     notifyListeners();
   }
 

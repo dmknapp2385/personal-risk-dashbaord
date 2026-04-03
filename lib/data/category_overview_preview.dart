@@ -1,4 +1,5 @@
 import '../models/risk_category.dart';
+import 'digital_privacy_subcategories.dart';
 import 'financial_subcategories.dart';
 
 /// Lines shown in the home overview hover card (keep in sync with category tabs).
@@ -30,12 +31,8 @@ List<String> categorySubPreviewLines(RiskCategory category) {
         'Personal violence exposure',
       ];
     case RiskCategory.digitalPrivacy:
-      return const [
-        'Password & MFA hygiene',
-        'Phishing & scams exposure',
-        'Data breach & account reuse',
-        'Device & network security',
-        'Oversharing & trace footprint',
+      return [
+        for (final d in kDigitalPrivacySubcategoryDefs) d.title,
       ];
   }
 }

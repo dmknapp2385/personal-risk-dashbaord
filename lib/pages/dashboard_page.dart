@@ -92,15 +92,9 @@ class _DashboardPageState extends State<DashboardPage> {
                   return RiskCategoryDetailPage(
                     title: category.shortLabel,
                     body: DigitalPrivacyTab(
-                      digitalLevels: [
-                        _c.digitalPasswordHygiene,
-                        _c.digitalPhishingExposure,
-                        _c.digitalBreachExposure,
-                        _c.digitalDeviceSecurity,
-                        _c.digitalOversharing,
-                      ],
+                      digitalLevels: List<int>.from(_c.digitalFactorLevels),
                       onDigitalFactorChanged: _c.setDigitalFactor,
-                      overallScore: _c.digitalPrivacyRiskScore,
+                      digitalDetail: _c.digitalRiskResult,
                     ),
                   );
               }
