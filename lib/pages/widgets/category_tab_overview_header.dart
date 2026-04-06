@@ -6,6 +6,76 @@ import '../../utils/risk_level_scale.dart';
 import '../../utils/risk_score.dart';
 import 'category_overview_score_bar.dart';
 
+/// Builds overview bar slices from flat factor levels and engine per-subcategory
+/// [engineSubShares] / [subScores]. Subcategories where **every** factor is 0 are
+/// omitted (same rule as [categorySlicesFromFactors]); remaining shares renormalize to 1.
+List<CategoryOverviewBarSlice> engineBarSlicesOmittingAllZeroSubcategories({
+  required List<int> factorLevelsFlat,
+  required List<double> engineSubShares,
+  required List<double> subScores,
+  required List<String> sectionTitles,
+  required List<List<String>> sectionFactorLabels,
+}) {
+  assert(sectionTitles.length == sectionFactorLabels.length);
+  assert(engineSubShares.length == sectionTitles.length);
+  assert(subScores.length == sectionTitles.length);
+
+  var offset = 0;
+  final active = <({int index, List<int> seg})>[];
+  for (var s = 0; s < sectionTitles.length; s++) {
+    final labels = sectionFactorLabels[s];
+    final n = labels.length;
+    final seg = factorLevelsFlat.sublist(offset, offset + n);
+    offset += n;
+    final contributes = seg.any((l) => RiskLevelScale.clamp(l) > 0);
+    if (contributes) {
+      active.add((index: s, seg: List<int>.from(seg)));
+    }
+  }
+  assert(
+    offset == factorLevelsFlat.length,
+    'factorLevelsFlat length does not match section factor counts',
+  );
+
+  if (active.isEmpty) return [];
+
+  var shareSum = 0.0;
+  for (final a in active) {
+    shareSum += engineSubShares[a.index];
+  }
+
+  final out = <CategoryOverviewBarSlice>[];
+  if (shareSum <= 1e-12) {
+    final eq = 1.0 / active.length;
+    for (final a in active) {
+      final s = a.index;
+      out.add(
+        CategoryOverviewBarSlice(
+          title: sectionTitles[s],
+          share: eq,
+          riskScore: subScores[s],
+          factorLabels: sectionFactorLabels[s],
+          factorLevels: a.seg,
+        ),
+      );
+    }
+  } else {
+    for (final a in active) {
+      final s = a.index;
+      out.add(
+        CategoryOverviewBarSlice(
+          title: sectionTitles[s],
+          share: engineSubShares[s] / shareSum,
+          riskScore: subScores[s],
+          factorLabels: sectionFactorLabels[s],
+          factorLevels: a.seg,
+        ),
+      );
+    }
+  }
+  return out;
+}
+
 /// Shared header layout for category detail pages (matches financial overview pattern).
 class CategoryTabOverviewHeader extends StatelessWidget {
   const CategoryTabOverviewHeader({

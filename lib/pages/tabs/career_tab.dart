@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../data/career_subcategories.dart';
 import '../../data/risk_help_text.dart';
 import '../../engine/career_risk_types.dart';
-import '../../models/category_overview_slice.dart';
 import '../widgets/category_section.dart';
 import '../widgets/category_tab_overview_header.dart';
 
@@ -42,10 +41,12 @@ class CareerTab extends StatelessWidget {
       careerDetail.subcategoryScores.length == kCareerSubcategoryDefs.length,
     );
 
-    final barSlices = _buildBarSlices(
-      careerLevels,
-      careerDetail.subcategoryShare,
-      careerDetail.subcategoryScores,
+    final barSlices = engineBarSlicesOmittingAllZeroSubcategories(
+      factorLevelsFlat: careerLevels,
+      engineSubShares: careerDetail.subcategoryShare,
+      subScores: careerDetail.subcategoryScores,
+      sectionTitles: [for (final d in kCareerSubcategoryDefs) d.title],
+      sectionFactorLabels: [for (final d in kCareerSubcategoryDefs) d.factorLabels],
     );
 
     final children = <Widget>[
@@ -92,29 +93,4 @@ class CareerTab extends StatelessWidget {
 
     return ListView(children: children);
   }
-}
-
-List<CategoryOverviewBarSlice> _buildBarSlices(
-  List<int> careerLevels,
-  List<double> shares,
-  List<double> subScores,
-) {
-  var offset = 0;
-  final out = <CategoryOverviewBarSlice>[];
-  for (var s = 0; s < kCareerSubcategoryDefs.length; s++) {
-    final def = kCareerSubcategoryDefs[s];
-    final n = def.factorLabels.length;
-    final seg = careerLevels.sublist(offset, offset + n);
-    offset += n;
-    out.add(
-      CategoryOverviewBarSlice(
-        title: def.title,
-        share: shares[s],
-        riskScore: subScores[s],
-        factorLabels: def.factorLabels,
-        factorLevels: List<int>.from(seg),
-      ),
-    );
-  }
-  return out;
 }

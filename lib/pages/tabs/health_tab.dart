@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../data/health_subcategories.dart';
 import '../../data/risk_help_text.dart';
 import '../../engine/health_risk_types.dart';
-import '../../models/category_overview_slice.dart';
 import '../widgets/category_section.dart';
 import '../widgets/category_tab_overview_header.dart';
 
@@ -42,10 +41,12 @@ class HealthTab extends StatelessWidget {
       healthDetail.subcategoryScores.length == kHealthSubcategoryDefs.length,
     );
 
-    final barSlices = _buildBarSlices(
-      healthLevels,
-      healthDetail.subcategoryShare,
-      healthDetail.subcategoryScores,
+    final barSlices = engineBarSlicesOmittingAllZeroSubcategories(
+      factorLevelsFlat: healthLevels,
+      engineSubShares: healthDetail.subcategoryShare,
+      subScores: healthDetail.subcategoryScores,
+      sectionTitles: [for (final d in kHealthSubcategoryDefs) d.title],
+      sectionFactorLabels: [for (final d in kHealthSubcategoryDefs) d.factorLabels],
     );
 
     final children = <Widget>[
@@ -92,29 +93,4 @@ class HealthTab extends StatelessWidget {
 
     return ListView(children: children);
   }
-}
-
-List<CategoryOverviewBarSlice> _buildBarSlices(
-  List<int> healthLevels,
-  List<double> shares,
-  List<double> subScores,
-) {
-  var offset = 0;
-  final out = <CategoryOverviewBarSlice>[];
-  for (var s = 0; s < kHealthSubcategoryDefs.length; s++) {
-    final def = kHealthSubcategoryDefs[s];
-    final n = def.factorLabels.length;
-    final seg = healthLevels.sublist(offset, offset + n);
-    offset += n;
-    out.add(
-      CategoryOverviewBarSlice(
-        title: def.title,
-        share: shares[s],
-        riskScore: subScores[s],
-        factorLabels: def.factorLabels,
-        factorLevels: List<int>.from(seg),
-      ),
-    );
-  }
-  return out;
 }

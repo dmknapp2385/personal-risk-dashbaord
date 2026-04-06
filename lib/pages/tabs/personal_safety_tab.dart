@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../data/personal_safety_subcategories.dart';
 import '../../data/risk_help_text.dart';
 import '../../engine/personal_safety_risk_types.dart';
-import '../../models/category_overview_slice.dart';
 import '../widgets/category_section.dart';
 import '../widgets/category_tab_overview_header.dart';
 import '../widgets/location_row.dart';
@@ -49,10 +48,14 @@ class PersonalSafetyTab extends StatelessWidget {
           kPersonalSafetySubcategoryDefs.length,
     );
 
-    final barSlices = _buildBarSlices(
-      safetyLevels,
-      safetyDetail.subcategoryShare,
-      safetyDetail.subcategoryScores,
+    final barSlices = engineBarSlicesOmittingAllZeroSubcategories(
+      factorLevelsFlat: safetyLevels,
+      engineSubShares: safetyDetail.subcategoryShare,
+      subScores: safetyDetail.subcategoryScores,
+      sectionTitles: [for (final d in kPersonalSafetySubcategoryDefs) d.title],
+      sectionFactorLabels: [
+        for (final d in kPersonalSafetySubcategoryDefs) d.factorLabels,
+      ],
     );
 
     final children = <Widget>[
@@ -104,29 +107,4 @@ class PersonalSafetyTab extends StatelessWidget {
 
     return ListView(children: children);
   }
-}
-
-List<CategoryOverviewBarSlice> _buildBarSlices(
-  List<int> safetyLevels,
-  List<double> shares,
-  List<double> subScores,
-) {
-  var offset = 0;
-  final out = <CategoryOverviewBarSlice>[];
-  for (var s = 0; s < kPersonalSafetySubcategoryDefs.length; s++) {
-    final def = kPersonalSafetySubcategoryDefs[s];
-    final n = def.factorLabels.length;
-    final seg = safetyLevels.sublist(offset, offset + n);
-    offset += n;
-    out.add(
-      CategoryOverviewBarSlice(
-        title: def.title,
-        share: shares[s],
-        riskScore: subScores[s],
-        factorLabels: def.factorLabels,
-        factorLevels: List<int>.from(seg),
-      ),
-    );
-  }
-  return out;
 }

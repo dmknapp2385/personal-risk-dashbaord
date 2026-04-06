@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../data/financial_subcategories.dart';
 import '../../data/risk_help_text.dart';
 import '../../engine/financial_risk_types.dart';
-import '../../models/category_overview_slice.dart';
 import '../widgets/category_section.dart';
 import '../widgets/category_tab_overview_header.dart';
 
@@ -42,10 +41,12 @@ class FinancialTab extends StatelessWidget {
       financialDetail.subcategoryScores.length == kFinancialSubcategoryDefs.length,
     );
 
-    final barSlices = _buildBarSlices(
-      financialLevels,
-      financialDetail.subcategoryShare,
-      financialDetail.subcategoryScores,
+    final barSlices = engineBarSlicesOmittingAllZeroSubcategories(
+      factorLevelsFlat: financialLevels,
+      engineSubShares: financialDetail.subcategoryShare,
+      subScores: financialDetail.subcategoryScores,
+      sectionTitles: [for (final d in kFinancialSubcategoryDefs) d.title],
+      sectionFactorLabels: [for (final d in kFinancialSubcategoryDefs) d.factorLabels],
     );
 
     final children = <Widget>[
@@ -92,29 +93,4 @@ class FinancialTab extends StatelessWidget {
 
     return ListView(children: children);
   }
-}
-
-List<CategoryOverviewBarSlice> _buildBarSlices(
-  List<int> financialLevels,
-  List<double> shares,
-  List<double> subScores,
-) {
-  var offset = 0;
-  final out = <CategoryOverviewBarSlice>[];
-  for (var s = 0; s < kFinancialSubcategoryDefs.length; s++) {
-    final def = kFinancialSubcategoryDefs[s];
-    final n = def.factorLabels.length;
-    final seg = financialLevels.sublist(offset, offset + n);
-    offset += n;
-    out.add(
-      CategoryOverviewBarSlice(
-        title: def.title,
-        share: shares[s],
-        riskScore: subScores[s],
-        factorLabels: def.factorLabels,
-        factorLevels: List<int>.from(seg),
-      ),
-    );
-  }
-  return out;
 }
