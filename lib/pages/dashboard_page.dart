@@ -39,29 +39,18 @@ class _DashboardPageState extends State<DashboardPage> {
                   return RiskCategoryDetailPage(
                     title: category.shortLabel,
                     body: HealthTab(
-                      healthLevels: [
-                        _c.insuranceCoverageAdequacy,
-                        _c.insuranceDeductibleSensitivity,
-                        _c.insuranceLiabilityCoverage,
-                        _c.insuranceAssetCoverage,
-                      ],
-                      onHealthFactorChanged: _c.setInsuranceFactor,
-                      overallScore: _c.healthRiskScore,
+                      healthLevels: List<int>.from(_c.healthFactorLevels),
+                      onHealthFactorChanged: _c.setHealthFactor,
+                      healthDetail: _c.healthRiskResult,
                     ),
                   );
                 case RiskCategory.career:
                   return RiskCategoryDetailPage(
                     title: category.shortLabel,
                     body: CareerTab(
-                      careerLevels: [
-                        _c.climateHeat,
-                        _c.climateFlood,
-                        _c.climateWildfire,
-                        _c.climateStorm,
-                        _c.climateResilience,
-                      ],
-                      onCareerFactorChanged: _c.setClimateFactor,
-                      overallScore: _c.careerRiskScore,
+                      careerLevels: List<int>.from(_c.careerFactorLevels),
+                      onCareerFactorChanged: _c.setCareerFactor,
+                      careerDetail: _c.careerRiskResult,
                     ),
                   );
                 case RiskCategory.financial:
@@ -78,14 +67,11 @@ class _DashboardPageState extends State<DashboardPage> {
                     title: category.shortLabel,
                     body: PersonalSafetyTab(
                       locationInput: _c.crimeLocationInput,
-                      safetyLevels: [
-                        _c.crimeIncidentFrequency,
-                        _c.crimePropertyCrime,
-                        _c.crimeViolentCrime,
-                      ],
+                      safetyLevels:
+                          List<int>.from(_c.personalSafetyFactorLevels),
                       onLocationChanged: _c.setCrimeLocationInput,
-                      onSafetyFactorChanged: _c.setCrimeFactor,
-                      overallScore: _c.personalSafetyRiskScore,
+                      onSafetyFactorChanged: _c.setPersonalSafetyFactor,
+                      safetyDetail: _c.personalSafetyRiskResult,
                     ),
                   );
                 case RiskCategory.digitalPrivacy:

@@ -22,16 +22,50 @@ abstract final class RiskHelpText {
     'Inflation and purchasing power':
         'Whether your savings and returns keep up with the cost of living over time. '
         'High risk means too much idle cash or returns that lag inflation.',
-    // Single-section categories (title matches CategorySection)
-    'Health':
-        'Your overall health-related risk in this dashboard: how health issues, costs, '
-        'prevention, and insurance fit together—not a medical diagnosis.',
-    'Career':
-        'Your overall work and income stability risk: job security, pay swings, skills, '
-        'stress, and outside forces on your field.',
-    'Personal Safety':
-        'Your exposure to crime, theft, and personal harm where you live and spend time. '
-        'It reflects how you perceive risk, not official crime statistics.',
+    // Health (section titles)
+    'Physical health burden':
+        'Conditions, symptoms, sleep, and energy as you experience them—not a diagnosis. '
+        'Higher means more day-to-day health load on your life.',
+    'Prevention & access':
+        'Screenings you delay, wait times, and practical barriers to care. '
+        'Higher means prevention and access feel harder to sustain.',
+    'Costs & coverage':
+        'Bills, insurance gaps, and affordability of treatment. '
+        'Higher means financial shock from care is a bigger worry.',
+    'Mental load & behavior':
+        'Stress, mood, habits, and support. Higher means mental strain or risky habits '
+        'weigh more on overall wellbeing.',
+    'Dependents & caregiving':
+        'Others who rely on you for health and care, and the time or burnout that takes. '
+        'Higher means dependent needs feel heavy or under-planned.',
+    // Career (section titles)
+    'Role & employment stability':
+        'Job security, contracts, and reliance on one employer or client. '
+        'Higher means income continuity feels less certain.',
+    'Income & volatility':
+        'Bonus swings, single-stream dependence, and need for side work. '
+        'Higher means pay is harder to predict or lean on one source.',
+    'Skills & relevance':
+        'Keeping skills current versus where your field is headed. '
+        'Higher means obsolescence or retraining pressure feels real.',
+    'Workload & sustainability':
+        'Hours, burnout risk, commute, and workplace fit. '
+        'Higher means the pace or environment feels hard to sustain.',
+    'Industry & external risk':
+        'Demand, regulation, and geography affecting your sector. '
+        'Higher means outside forces could disrupt your work.',
+    // Personal safety (section titles)
+    'Neighborhood & everyday exposure':
+        'How safe routine places and your area feel to you—not crime statistics.',
+    'Property & theft':
+        'Break-ins, vehicle crime, and securing belongings you care about.',
+    'Personal violence & conflict':
+        'Assault, harassment, workplace or school safety, and coercion in close relationships '
+        '(self-assessed, subjective).',
+    'Travel & unfamiliar places':
+        'Work travel, night routes, crowds, and unfamiliar environments.',
+    'Awareness & readiness':
+        'Emergency prep, household communication, and basic security habits.',
     'Identity & authentication':
         'How strong your logins are: passwords, MFA, recovery options, and whether '
         'credentials are shared or reused. Weak spots here make takeover much easier.',
@@ -103,43 +137,102 @@ abstract final class RiskHelpText {
     'Inflation mismatch':
         'Whether your income, savings, and future costs line up with rising prices. '
         'A mismatch means your money buys less over time.',
-    // Health
-    'Chronic & acute health load':
-        'Ongoing conditions or serious health events you carry. Higher means more health '
-        'burden on daily life and costs.',
-    'Healthcare cost sensitivity':
-        'How much a big medical bill or premium jump would hurt your budget. Higher means '
-        'less room to absorb cost shocks.',
-    'Preventive care gaps':
-        'Checkups, screenings, and habits you might be skipping. Gaps can mean problems '
-        'show up later and cost more.',
-    'Coverage & access adequacy':
-        'Whether insurance and getting care when you need it feel sufficient. Low scores '
-        'mean worry about paying for or reaching care.',
-    // Career
-    'Role & job security':
-        'How stable your job or role feels—layoffs, contract end, or org change. '
-        'Higher risk means more uncertainty about keeping income.',
-    'Income / bonus volatility':
-        'How much your pay changes month to month or year to year. Big swings make '
-        'budgeting and saving harder.',
-    'Skills & training gap':
-        'How well your skills match where your industry is going. A gap means harder '
-        'job moves or pay growth later.',
-    'Workload & burnout':
-        'Stress, hours, and whether the pace feels sustainable. High risk means burnout '
-        'could affect health and performance.',
-    'Industry & market headwinds':
-        'Outside forces on your field—automation, regulation, demand drops. Higher means '
-        'the sector itself feels shaky.',
-    // Personal safety
-    'Neighborhood & local incidents':
-        'Crime, disorder, or safety issues where you live or spend time regularly. '
-        'Based on how you perceive local risk.',
-    'Property / theft exposure':
-        'Risk of break-ins, theft, or property crime affecting you or your home.',
-    'Personal violence exposure':
-        'Your sense of risk of physical harm or violence directed at you in daily life.',
+    // Health — factors
+    'Chronic or acute conditions you manage':
+        'Ongoing diagnoses or flare-ups you live with. Higher means they take more attention, '
+        'energy, or planning day to day.',
+    'Day-to-day pain, fatigue, or symptoms':
+        'How often pain, tiredness, or symptoms limit activity or mood—not a clinical score.',
+    'Sleep quality and energy most weeks':
+        'Whether rest and energy feel adequate for what you need to do. Poor sleep often '
+        'amplifies other health stress.',
+    'Preventive care and screenings you skip or delay':
+        'Checkups, dental, vision, vaccines, or screenings you put off. Delays can mean '
+        'issues are caught later.',
+    'Wait times, referrals, or specialist access':
+        'How hard it is to get timely appointments or the right specialist when needed.',
+    'Distance, cost, or logistics blocking care':
+        'Travel, childcare, time off work, or money making care harder to use.',
+    'Sensitivity to a large medical bill':
+        'How painful a surprise bill would be relative to your buffer and income.',
+    'Gaps in insurance vs. what you might need':
+        'Deductibles, exclusions, networks, or coverage limits that worry you if something serious happened.',
+    'Prescription and ongoing treatment affordability':
+        'Cost of meds, supplies, or therapy you need to keep taking.',
+    'Stress, anxiety, or low mood impact on life':
+        'How much mental strain affects work, relationships, or daily function (self-reported).',
+    'Habits that could affect health (sleep, substance, etc.)':
+        'Patterns you notice (sleep, alcohol, smoking, food, screen time) that might raise risk over time.',
+    'Social support when things get hard':
+        'Whether you have people to lean on practically or emotionally in a health crisis.',
+    'Health needs of children or elders you support':
+        'Dependents whose medical or daily care needs fall partly on you.',
+    'Caregiving time and burnout risk':
+        'Hours and emotional load of supporting someone else’s health.',
+    'Coverage and planning for dependents’ care':
+        'Insurance, savings, or legal plans for dependents’ healthcare if something changes.',
+    // Career — factors
+    'Job or role security over the next year':
+        'How likely you feel layoff, non-renewal, or major role change is in the near term.',
+    'Contract end, layoff, or restructuring exposure':
+        'Specific events (contract dates, rumors, org change) that could interrupt income.',
+    'Dependence on a single employer or client':
+        'How much of your livelihood rides on one relationship or paycheck.',
+    'Bonus, commission, or irregular pay swings':
+        'How much take-home varies with performance, season, or luck.',
+    'Dependence on one income stream':
+        'Household reliance on a single job or gig without backup.',
+    'Side work or second-job necessity':
+        'Whether you need extra work to cover basics—not optional “fun” income.',
+    'Gap between your skills and where the field is headed':
+        'How aligned your capabilities are with tools, roles, or demand you see emerging.',
+    'Training or certification you have not kept current':
+        'Licenses, certs, or training that are stale or missing versus job postings you care about.',
+    'Automation or outsourcing risk in your work':
+        'How much of what you do could be automated, offshored, or consolidated away.',
+    'Burnout, hours, or unsustainable pace':
+        'Whether workload feels chronically too high to recover from week to week.',
+    'Commute or schedule strain':
+        'Time, cost, or inflexibility of getting to work or juggling shifts.',
+    'Fit with manager, team, or culture':
+        'Conflict, isolation, or mismatch that makes staying healthy at work harder.',
+    'Industry demand and market headwinds':
+        'Whether employers in your field are hiring, stable, or cutting back.',
+    'Regulation, licensing, or policy changes':
+        'Rules that could change how you practice, bill, or operate professionally.',
+    'Geographic or relocation pressure for work':
+        'Need to move, commute farther, or accept a worse location to keep opportunities.',
+    // Personal safety — factors
+    'Local crime, disorder, or safety where you live':
+        'How you perceive safety around home—noise, drugs, vandalism, or violent incidents.',
+    'Routine outings (shops, transit, evenings out)':
+        'Everyday places where you spend time and how safe they feel.',
+    'Sense of safety walking alone in your area':
+        'Comfort moving on foot locally, especially at night or in quiet areas.',
+    'Home break-in or burglary concern':
+        'Worry about forced entry, theft while away, or unsecured entry points.',
+    'Vehicle theft or vandalism':
+        'Risk to cars, bikes, or vehicles you park on street or in lots.',
+    'Packages, bikes, or storage security':
+        'Porch pirates, shared storage, or unsecured bikes and gear.',
+    'Risk of assault, harassment, or targeted harm':
+        'Your sense of exposure to intentional harm or harassment directed at you.',
+    'Safety in workplaces or schools you use':
+        'Security, bullying, or conflict in places you must go regularly.',
+    'Conflict or coercion in close relationships (self-assessed)':
+        'Feeling unsafe or controlled in relationships—seek professional help if you are in danger.',
+    'Work travel or unfamiliar cities':
+        'Trips where you are less familiar with risks, transit, or neighborhoods.',
+    'Late-night or isolated routes':
+        'Walking, parking, or transit when few people are around.',
+    'Large crowds or events':
+        'Concerts, transit hubs, or protests where density or chaos raises concern.',
+    'How prepared you feel for an emergency':
+        'Confidence you could respond to fire, medical, or security emergencies at home.',
+    'Communication plan with household':
+        'Whether people know how to reach each other and where to go if separated.',
+    'Lighting, locks, and basic security habits':
+        'Physical deterrence and routines (locks, lights, awareness) you actually use.',
     // Digital / privacy (sub-factors)
     'Password & MFA strength':
         'How hard your passwords are to guess and whether MFA protects important accounts.',

@@ -8,7 +8,7 @@ class DriverFactor {
   });
 
   final String label;
-  // 0..4 (very low .. very high)
+  /// Self-reported stress / exposure for this driver (0–100).
   final int level;
   final RiskCategory category;
 }

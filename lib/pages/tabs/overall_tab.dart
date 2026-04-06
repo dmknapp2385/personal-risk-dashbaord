@@ -4,6 +4,7 @@ import '../../models/driver_factor.dart';
 import '../../models/home_category_score.dart';
 import '../../models/risk_category.dart';
 import '../../utils/category_risk_bar_colors.dart';
+import '../../utils/risk_level_scale.dart';
 import '../../utils/risk_score.dart';
 import '../widgets/overall_score_category_bar.dart';
 import '../widgets/top_drivers_next_steps_section.dart';
@@ -261,14 +262,16 @@ class TopDriverChip extends StatelessWidget {
   static const Color _lowColor = Color(0xFF16A34A); // green
   static const Color _highColor = Color(0xFFDC2626); // red
 
-  double get _t => driver.level.clamp(0, 4) / 4.0;
+  double get _t => RiskLevelScale.toNorm(driver.level);
 
   Color get _riskColor => Color.lerp(_lowColor, _highColor, _t)!;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final tabLabel = _scaleLabels[driver.level.clamp(0, 4)];
+    final pct = RiskLevelScale.clamp(driver.level);
+    final tabLabel =
+        '${_scaleLabels[RiskLevelScale.bandIndex(pct)]} · $pct%';
 
     return InkWell(
       onTap: () => onOpenCategory(driver.category),

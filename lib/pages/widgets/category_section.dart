@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../utils/risk_level_scale.dart';
 import '../../utils/risk_score.dart';
+import 'risk_level_slider_field.dart';
 import 'score_info_icon.dart';
 
 class CategorySection extends StatelessWidget {
@@ -36,7 +38,8 @@ class CategorySection extends StatelessWidget {
   static const Color _lowColor = Color(0xFF16A34A); // green
   static const Color _highColor = Color(0xFFDC2626); // red
 
-  double get _t => levels.isEmpty ? 0 : _avgLevel / 4.0;
+  double get _t =>
+      levels.isEmpty ? 0 : _avgLevel / RiskLevelScale.max;
 
   double get _avgLevel {
     final sum = levels.isEmpty ? 0 : levels.reduce((a, b) => a + b);
@@ -132,7 +135,7 @@ class CategorySection extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            'Answer (mock)',
+            'Your estimate (0–100%)',
             style: theme.textTheme.bodySmall?.copyWith(
               color: cs.onSurfaceVariant,
             ),
@@ -202,14 +205,8 @@ class _FactorSegmentedQuestion extends StatelessWidget {
   final List<String> scaleLabels;
   final String? questionHelp;
 
-  static const Color _lowColor = Color(0xFF16A34A); // green
-  static const Color _highColor = Color(0xFFDC2626); // red
-
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
@@ -222,7 +219,7 @@ class _FactorSegmentedQuestion extends StatelessWidget {
             children: [
               Text(
                 question,
-                style: theme.textTheme.bodyLarge?.copyWith(
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -234,35 +231,10 @@ class _FactorSegmentedQuestion extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 10,
-            runSpacing: 8,
-            children: List.generate(5, (i) {
-              final t = i / 4.0;
-              final chipColor = Color.lerp(_lowColor, _highColor, t)!;
-              final selected = level == i;
-              return OutlinedButton(
-                onPressed: () => onLevelChanged(i),
-                style: OutlinedButton.styleFrom(
-                  backgroundColor: selected ? chipColor.withOpacity(0.14) : null,
-                  side: BorderSide(
-                    color: chipColor.withOpacity(selected ? 1.0 : 0.55),
-                    width: selected ? 1.6 : 1.2,
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                ),
-                child: Text(
-                  scaleLabels[i],
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: selected ? chipColor : cs.onSurfaceVariant,
-                    fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
-                  ),
-                ),
-              );
-            }),
+          RiskLevelSliderField(
+            value: RiskLevelScale.clamp(level),
+            anchorLabels: scaleLabels,
+            onChanged: onLevelChanged,
           ),
         ],
       ),
@@ -291,7 +263,7 @@ class _MiniImpactBar extends StatelessWidget {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
-    final t = level.clamp(0, 4) / 4.0;
+    final t = RiskLevelScale.toNorm(level);
     final riskColor = Color.lerp(_lowColor, _highColor, t)!;
 
     return SizedBox(
@@ -319,7 +291,9 @@ class _MiniImpactBar extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            '${scaleLabels[level.clamp(0, 4)]} • ${contributionPct}%',
+            '${RiskLevelScale.clamp(level)}% · '
+            '${scaleLabels[RiskLevelScale.bandIndex(level)]} · '
+            '$contributionPct%',
             style: theme.textTheme.bodySmall?.copyWith(
               color: cs.onSurfaceVariant,
             ),

@@ -1,16 +1,9 @@
 import '../models/driver_factor.dart';
 import '../models/risk_category.dart';
 
-/// Actionable mitigation bullets keyed by exact factor labels for Financial and
-/// Digital / Privacy. Other categories return a short placeholder until modeled.
+/// Actionable mitigation bullets keyed by exact factor labels for all categories.
 abstract final class DriverMitigationSteps {
-  static const List<String> _otherCategoryPlaceholder = [
-    'Tailored “next steps” for this category are not in the app yet. Open the tab, '
-        're-read each question, and lower levels where they no longer match reality. '
-        'We will add specific guidance here soon.',
-  ];
-
-  /// Bullets to show for this driver (financial and digital are fully covered).
+  /// Bullets to show for this driver.
   static List<String> stepsFor(DriverFactor driver) {
     switch (driver.category) {
       case RiskCategory.financial:
@@ -28,15 +21,309 @@ abstract final class DriverMitigationSteps {
         );
         return s!;
       case RiskCategory.health:
+        final s = _health[driver.label];
+        assert(
+          s != null,
+          'Missing mitigation copy for health factor: ${driver.label}',
+        );
+        return s!;
       case RiskCategory.career:
+        final s = _career[driver.label];
+        assert(
+          s != null,
+          'Missing mitigation copy for career factor: ${driver.label}',
+        );
+        return s!;
       case RiskCategory.personalSafety:
-        return _otherCategoryPlaceholder;
+        final s = _personalSafety[driver.label];
+        assert(
+          s != null,
+          'Missing mitigation copy for personal safety factor: ${driver.label}',
+        );
+        return s!;
     }
   }
 
-  static bool hasFullPlaybook(RiskCategory category) =>
-      category == RiskCategory.financial ||
-      category == RiskCategory.digitalPrivacy;
+  static bool hasFullPlaybook(RiskCategory category) => true;
+
+  static const Map<String, List<String>> _health = {
+    'Chronic or acute conditions you manage': [
+      'Keep a one-page health summary (diagnoses, meds, allergies, key providers) updated and accessible for emergencies.',
+      'Book follow-ups on a calendar rhythm so flare-ups do not slide until they are urgent.',
+      'Ask your clinician about the smallest lifestyle changes with evidence for your condition—pick one to try for 4–8 weeks.',
+      'If costs block care, ask about generics, patient assistance programs, or payment plans before skipping treatment.',
+    ],
+    'Day-to-day pain, fatigue, or symptoms': [
+      'Track sleep, activity, and symptom spikes for two weeks—patterns often reveal triggers you can adjust.',
+      'Prioritize one recovery habit (consistent bedtime, gentle movement, hydration) rather than overhauling everything.',
+      'Split demanding tasks across days; say no once where you usually push through pain or exhaustion.',
+      'Discuss persistent symptoms with a clinician—unexplained worsening deserves a proper workup, not only coping.',
+    ],
+    'Sleep quality and energy most weeks': [
+      'Fix wake time first; a stable morning anchor improves sleep pressure more than chasing perfect bedtimes.',
+      'Dim screens and heavy meals in the last hour before bed; keep the bedroom cool, dark, and quiet.',
+      'Limit late caffeine and alcohol; both fragment sleep even when they feel helpful in the moment.',
+      'If insomnia lasts weeks, consider CBT-I or a sleep clinic—behavioral treatment often beats long-term sedatives.',
+    ],
+    'Preventive care and screenings you skip or delay': [
+      'List overdue items (dental, vision, labs, vaccines) and schedule the easiest one this month.',
+      'Use preventive benefits your plan already covers—many waive copays for defined screenings.',
+      'Pair appointments with something rewarding afterward so the day feels less like pure chore.',
+      'If fear or past bad experiences block you, tell staff upfront; many offices have accommodations or slower-paced visits.',
+    ],
+    'Wait times, referrals, or specialist access': [
+      'Ask your PCP for a referral to a specific named specialist or group with shorter availability.',
+      'Call weekly for cancellation lists; midday calls sometimes catch openings.',
+      'For non-urgent issues, consider telehealth triage to confirm you need a specialist before waiting months.',
+      'Document symptoms with dates so the first specialist visit is efficient and you are not sent back for more tests.',
+    ],
+    'Distance, cost, or logistics blocking care': [
+      'Batch appointments on one day with childcare or ride help lined up in advance.',
+      'Check FSA/HSA eligibility, community clinics, and sliding-scale centers for the services you need.',
+      'Use mail-order pharmacy or 90-day fills when cheaper; compare cash prices with discount apps for generics.',
+      'If work blocks daytime visits, ask for the earliest, latest, or telehealth slots explicitly.',
+    ],
+    'Sensitivity to a large medical bill': [
+      'Build or name a dedicated medical buffer (even small) separate from everyday checking.',
+      'Before non-emergency procedures, get an estimate in writing and ask about cash or bundled pricing.',
+      'Review EOBs for duplicate charges or out-of-network surprises; appeal clear errors.',
+      'If a bill is unpayable, negotiate a payment plan early—hospitals often prefer steady partial payments.',
+    ],
+    'Gaps in insurance vs. what you might need': [
+      'List worst-case scenarios (ER, surgery, chronic Rx) and check deductibles, OOP max, and network for each.',
+      'During open enrollment, compare total cost (premium + expected care), not premium alone.',
+      'Consider supplemental or critical-illness coverage only after understanding exclusions and waiting periods.',
+      'If between jobs, map COBRA, marketplace, or spouse coverage timelines so you do not sit uninsured.',
+    ],
+    'Prescription and ongoing treatment affordability': [
+      'Ask about therapeutic equivalents, dose splitting where safe, or manufacturer coupons for brand drugs.',
+      'Compare pharmacy prices; chains and independents often differ materially for the same Rx.',
+      'Use automatic refills and mail order to avoid lapse fees or urgent retail markups.',
+      'Discuss deprescribing or lower-cost alternatives with your clinician when a drug’s benefit is unclear.',
+    ],
+    'Stress, anxiety, or low mood impact on life': [
+      'Name one small boundary (evening offline block, shorter meetings) that protects recovery time.',
+      'Try brief daily practices with evidence (walks, breathing, journaling triggers) for 2–3 weeks before judging.',
+      'If symptoms affect work or relationships for weeks, book counseling or psychiatry—waiting lists reward early signup.',
+      'Tell one trusted person how you are really doing; isolation amplifies most mood problems.',
+    ],
+    'Habits that could affect health (sleep, substance, etc.)': [
+      'Pick one habit to reduce (not five); measure it weekly so progress is visible.',
+      'Replace triggers: swap the routine after the cue while keeping a similar reward (tea instead of late wine, etc.).',
+      'Use professional help for substances if stopping alone has failed or withdrawal could be risky.',
+      'Sleep, movement, and alcohol interact—fixing sleep often makes other habits easier to change.',
+    ],
+    'Social support when things get hard': [
+      'Identify two people who could help practically (rides, childcare) vs. emotionally—ask clearly for one type.',
+      'Join a condition-specific or caregiver group online or locally; shared experience reduces shame.',
+      'Schedule low-stakes contact (walk, coffee) before crisis so relationships are warm when you need them.',
+      'If family is part of the stress, consider mediated conversations or therapy focused on boundaries.',
+    ],
+    'Health needs of children or elders you support': [
+      'Centralize calendars, meds, and provider contacts in one shared doc or app.',
+      'Clarify legal and financial authority (POA, guardianship) before an emergency forces rushed decisions.',
+      'Rotate respite with other family or paid help—even short breaks reduce burnout-driven mistakes.',
+      'Review school IEP/504 or elder care plans yearly; needs change faster than paperwork.',
+    ],
+    'Caregiving time and burnout risk': [
+      'Track hours weekly; if unpaid care rivals a job, treat it like one with planned time off.',
+      'Delegate specific tasks (“you handle Tuesdays”) instead of vague “let me know if you need help.”',
+      'Use adult day programs, visiting nurses, or meal services where eligible—partial help still moves the needle.',
+      'Watch your own vitals, sleep, and mood; caregiver burnout often shows up as irritability and illness first.',
+    ],
+    'Coverage and planning for dependents’ care': [
+      'Verify dependents are correctly enrolled and that custodial parents match insurer records.',
+      'Save for deductibles in an HSA/FSA if available; tag the balance mentally for kids’ braces, therapy, or sports injuries.',
+      'Document guardianship wishes and emergency contacts where schools and caregivers can find them.',
+      'If elders rely on you, map Medicare parts, Medigap, and long-term care options before a hospital discharge rush.',
+    ],
+  };
+
+  static const Map<String, List<String>> _career = {
+    'Job or role security over the next year': [
+      'Clarify performance expectations in writing; align visible wins with what leadership says matters.',
+      'Refresh your resume and portfolio quarterly so you are not starting from zero under pressure.',
+      'Build internal and external networking—coffee chats beat cold applications in downturns.',
+      'If rumors swirl, ask your manager calmly about team direction; document commitments that affect you.',
+    ],
+    'Contract end, layoff, or restructuring exposure': [
+      'Know notice periods, severance norms, and visa impacts if applicable; read your contract now, not later.',
+      'Save offer letters and bonus terms; they matter if roles are eliminated or regraded.',
+      'Identify three target employers or clients you could approach within 30 days if income stops.',
+      'Cut discretionary spend preemptively when signals are strong—smaller cuts early beat panic later.',
+    ],
+    'Dependence on a single employer or client': [
+      'Negotiate a second smaller client or internal diversification of projects where possible.',
+      'Develop a skill adjacent to your core that another industry values (analytics, writing, ops).',
+      'Keep a running brag doc of outcomes so you can pitch elsewhere quickly.',
+      'Discuss with household how long you could survive on savings if the sole source vanished.',
+    ],
+    'Bonus, commission, or irregular pay swings': [
+      'Budget to a conservative baseline month; treat upside as savings or debt reduction, not new recurring costs.',
+      'Maintain a larger cash buffer proportional to pay variance.',
+      'Model taxes on variable income quarterly so April does not erase the “good” months.',
+      'If commissions lag policies, get plan documents and examples in email for disputes.',
+    ],
+    'Dependence on one income stream': [
+      'List skills monetizable in 10+ hours a week without quitting—consulting, teaching, gig platforms.',
+      'Reduce fixed costs that assume peak earnings (housing, car, private school) if the margin is thin.',
+      'Build creditworthiness and emergency savings while employed; both help bridge a transition.',
+      'Discuss with partner a staged plan if one income drops (who pauses what, for how long).',
+    ],
+    'Side work or second-job necessity': [
+      'Track hourly pay after tax and commute—sometimes one better primary job beats two mediocre ones.',
+      'Automate taxes and separate accounts for side income so you do not spend what you owe.',
+      'Protect sleep and recovery; second jobs that destroy health rarely pencil out over a year.',
+      'Look for employer tuition or certification support that could replace side hustle hours long term.',
+    ],
+    'Gap between your skills and where the field is headed': [
+      'Read 10 recent job postings you want; list recurring tools and keywords you lack.',
+      'Spend 3–5 hours weekly on one learning track with a portfolio artifact at the end.',
+      'Pair with a peer learning group or mentor for accountability.',
+      'Present a small internal pilot using new skills—visibility beats certificates alone.',
+    ],
+    'Training or certification you have not kept current': [
+      'Calendar renewal deadlines 90 days early; some exams have long booking lags.',
+      'Ask employers to sponsor required certs; tie the ask to compliance or revenue risk.',
+      'Stack micro-courses toward a credential rather than waiting for a perfect sabbatical.',
+      'If a license lapses, map reinstatement steps immediately—waiting multiplies cost.',
+    ],
+    'Automation or outsourcing risk in your work': [
+      'Shift emphasis to judgment, stakeholder management, and cross-domain synthesis—harder to automate.',
+      'Learn tools that automate your grunt work so you operate at a higher leverage layer.',
+      'Follow where your industry’s budget is moving (cloud, AI copilots, offshore) and skate to that demand.',
+      'Maintain an external reputation (talks, posts, OSS) so opportunities exist outside one employer’s roadmap.',
+    ],
+    'Burnout, hours, or unsustainable pace': [
+      'Block non-negotiable rest on calendar like meetings; defend it for four weeks and measure mood.',
+      'Escalate scope or deadline conflicts with data (hours, missed milestones) not only feelings.',
+      'Cut one recurring meeting or report that adds little value—burnout often has recoverable structural causes.',
+      'If burnout is chronic, discuss role change or FMLA/leave options with HR where appropriate.',
+    ],
+    'Commute or schedule strain': [
+      'Test one change (remote day, shifted hours, park-and-ride) for a month and log energy impact.',
+      'Negotiate core hours vs. total hours—sometimes flexibility matters more than raw time.',
+      'Batch onsite days for collaboration; protect deep work at home if hybrid.',
+      'If relocation is on the table, model full cost (rent delta, taxes, partner job) not just salary.',
+    ],
+    'Fit with manager, team, or culture': [
+      'Document specific behaviors and outcomes before a hard conversation; focus on work impact.',
+      'Seek a skip-level or HR-mediated chat if direct feedback loops fail.',
+      'Invest in one ally relationship cross-team—culture issues are easier with sponsors.',
+      'If values misalignment is deep, run a quiet job search; staying erodes performance and health.',
+    ],
+    'Industry demand and market headwinds': [
+      'Follow hiring indices and earnings calls for your sector; early signals beat surprise layoffs.',
+      'Diversify industry exposure in skills and network—even a adjacent vertical helps.',
+      'Keep liquid savings higher when cyclicality is obvious.',
+      'Consider geographic or remote employers outside your local market if demand is soft regionally.',
+    ],
+    'Regulation, licensing, or policy changes': [
+      'Subscribe to professional association alerts for your license or practice area.',
+      'Budget time and money for compliance training before deadlines force rush fees.',
+      'If policy threatens your niche, prototype a pivot project nights-and-weekends before you must.',
+      'Consult a specialist attorney or accountant when rules shift materially—guessing is expensive.',
+    ],
+    'Geographic or relocation pressure for work': [
+      'Model a full household budget in target cities including tax, childcare, and commute.',
+      'Negotiate relocation packages explicitly (temp housing, closing costs, tax gross-up).',
+      'If you cannot move, hunt fully remote roles in employers licensed in your state.',
+      'Discuss partner career impacts openly; dual commutes often fail even when one job is great.',
+    ],
+  };
+
+  static const Map<String, List<String>> _personalSafety = {
+    'Local crime, disorder, or safety where you live': [
+      'Walk your block at varied times; note lighting, sightlines, and exit routes.',
+      'Introduce yourself to neighbors and local community groups—eyes on the street help.',
+      'Report recurring issues (broken lights, dumping) to the right agency with photos and dates.',
+      'If you rent, document safety requests to management in writing.',
+    ],
+    'Routine outings (shops, transit, evenings out)': [
+      'Prefer well-lit, populated routes; avoid headphones that block situational awareness.',
+      'Keep phone charged; share ETA with someone for late trips.',
+      'Park in attended or visible spots; have keys ready before you approach the car.',
+      'Plan a safe meetup spot with friends in crowded venues in case you get separated.',
+    ],
+    'Sense of safety walking alone in your area': [
+      'Vary routines slightly so patterns are less predictable.',
+      'Carry a small flashlight; shadows and trip hazards matter as much as people risk.',
+      'Trust unease—cross the street, enter a store, or call a ride without apologizing for it.',
+      'Take a self-defense class focused on de-escalation and escape if you want concrete skills.',
+    ],
+    'Home break-in or burglary concern': [
+      'Upgrade strike plates and deadbolts; reinforce sliding doors; add a video doorbell if budget allows.',
+      'Use timers or smart lights when away; pause package delivery during travel.',
+      'Record serial numbers and photos of valuables for insurance claims.',
+      'Close blinds at night; do not advertise new purchases with packaging at the curb.',
+    ],
+    'Vehicle theft or vandalism': [
+      'Never leave keys or visible bags; lock even for “just a second.”',
+      'Prefer garages or attended lots; use a steering lock where theft is common.',
+      'Etch VIN on parts if recommended locally; some insurers discount anti-theft devices.',
+      'Report incidents promptly; patterns help police allocate patrols.',
+    ],
+    'Packages, bikes, or storage security': [
+      'Use locker hubs or office delivery for high-value items.',
+      'Lock bikes through frame and wheel to immovable objects; register serials.',
+      'Avoid storage units without good access control; check insurance exclusions.',
+      'Label units ambiguously; do not advertise expensive contents.',
+    ],
+    'Risk of assault, harassment, or targeted harm': [
+      'Set clear boundaries early; disengage and leave when someone ignores them.',
+      'Save evidence trails (screenshots, logs) if harassment is digital or repeated.',
+      'Know local hotlines and workplace reporting paths; use them when behavior crosses lines.',
+      'If you fear imminent danger, prioritize escape and emergency services over confrontation.',
+    ],
+    'Safety in workplaces or schools you use': [
+      'Learn evacuation routes and muster points; participate in drills seriously.',
+      'Report hazards (doors propped, broken cameras) before an incident.',
+      'Use buddy walks to parking at night if your employer allows.',
+      'For schools, know pickup protocols and who is authorized—confusion aids predators.',
+    ],
+    'Conflict or coercion in close relationships (self-assessed)': [
+      'If you feel controlled or afraid, contact a local domestic violence hotline—they can safety-plan confidentially.',
+      'Keep a go-bag and copies of IDs with someone you trust if leaving might be urgent.',
+      'Document incidents with dates; courts and shelters often need patterns, not single events.',
+      'Do not meet alone to “talk it out” if violence escalated; choose public or mediated settings.',
+    ],
+    'Work travel or unfamiliar cities': [
+      'Research safe districts and transit before landing; save offline maps.',
+      'Share itinerary and hotel details with a contact; check in on a schedule.',
+      'Avoid displaying cash or flashy gear; use hotel safes for passports.',
+      'Prefer licensed rides from official queues or apps with trip sharing enabled.',
+    ],
+    'Late-night or isolated routes': [
+      'Park under lights near exits; scan back seat before entering.',
+      'Let someone track your ride or walk; fake a call if you need an exit excuse.',
+      'Avoid ATMs in empty lots; use well-lit vestibules or indoor terminals.',
+      'If public transit is sparse, budget occasional rideshares for worst segments.',
+    ],
+    'Large crowds or events': [
+      'Identify exits when you arrive; move perpendicular to crowd surge if panic starts.',
+      'Carry minimal valuables; use front pockets or hidden pouches.',
+      'Agree on a rendezvous point with your group away from main gates.',
+      'Hydrate and pace yourself—medical incidents spike in heat and density.',
+    ],
+    'How prepared you feel for an emergency': [
+      'Build a go-bag with water, meds, copies of IDs, flashlight, and charger.',
+      'Run a 10-minute drill: simulate power loss or evacuation with household roles.',
+      'Learn basic first aid and CPR; keep kits at home and in vehicles.',
+      'Store insurance and medical cards digitally and on paper.',
+    ],
+    'Communication plan with household': [
+      'Pick an out-of-area contact everyone texts if local networks clog.',
+      'Teach children who is safe to go with and a code word for emergencies.',
+      'Test messaging apps on wifi if cell service is unreliable at home.',
+      'Update school and workplace emergency contacts yearly.',
+    ],
+    'Lighting, locks, and basic security habits': [
+      'Fix dark walkways with solar or wired lights on motion sensors.',
+      'Lock doors and windows habitually; many intrusions exploit unlocked entries.',
+      'Do not hide keys in obvious spots; use lockboxes or smart locks.',
+      'Shred documents with addresses; trim bushes that block windows from the street.',
+    ],
+  };
 
   static const Map<String, List<String>> _financial = {
     'Runway': [

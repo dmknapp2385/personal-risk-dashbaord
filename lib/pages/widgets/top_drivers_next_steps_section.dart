@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../data/driver_mitigation_steps.dart';
 import '../../models/driver_factor.dart';
 import '../../models/risk_category.dart';
+import '../../utils/risk_level_scale.dart';
 
 /// Home-page guidance tied to [topDrivers]: full playbooks for Financial and
 /// Digital / Privacy; short placeholder for other categories until modeled.
@@ -33,7 +34,7 @@ class _TopDriversNextStepsSectionState extends State<TopDriversNextStepsSection>
   static const Color _impactHigh = Color(0xFFDC2626);
 
   static Color impactColorForLevel(int level) {
-    final t = level.clamp(0, 4) / 4.0;
+    final t = RiskLevelScale.toNorm(level);
     return Color.lerp(_impactLow, _impactHigh, t)!;
   }
 
@@ -259,8 +260,8 @@ class _DriverMitigationBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final level = driver.level.clamp(0, 4);
-    final impact = scaleLabels[level];
+    final pct = RiskLevelScale.clamp(driver.level);
+    final band = scaleLabels[RiskLevelScale.bandIndex(pct)];
     final steps = DriverMitigationSteps.stepsFor(driver);
     final full = DriverMitigationSteps.hasFullPlaybook(driver.category);
 
@@ -309,7 +310,8 @@ class _DriverMitigationBlock extends StatelessWidget {
                     ),
                   ),
                   _ImpactChip(
-                    impact: impact,
+                    percent: pct,
+                    bandLabel: band,
                     color: impactColor,
                   ),
                 ],
@@ -390,11 +392,13 @@ class _DriverMitigationBlock extends StatelessWidget {
 
 class _ImpactChip extends StatelessWidget {
   const _ImpactChip({
-    required this.impact,
+    required this.percent,
+    required this.bandLabel,
     required this.color,
   });
 
-  final String impact;
+  final int percent;
+  final String bandLabel;
   final Color color;
 
   @override
@@ -407,7 +411,7 @@ class _ImpactChip extends StatelessWidget {
       backgroundColor: color.withValues(alpha: 0.18),
       side: BorderSide(color: color.withValues(alpha: 0.62)),
       label: Text(
-        'Impact: $impact',
+        'Impact: $percent% ($bandLabel)',
         style: theme.textTheme.labelSmall?.copyWith(
           color: color,
           fontWeight: FontWeight.w800,

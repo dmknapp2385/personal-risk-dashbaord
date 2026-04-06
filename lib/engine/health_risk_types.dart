@@ -1,43 +1,27 @@
 import 'dart:math' as math;
 
-import '../data/digital_privacy_subcategories.dart';
+import '../data/health_subcategories.dart';
+import 'all_category_peer_norms.dart';
 
-/// Peer category norms (0–1) for cross-category coupling into digital stress.
-/// Use simple factor averages from other tabs to avoid circular engine dependency.
-class DigitalPeerCrossSignals {
-  const DigitalPeerCrossSignals({
-    required this.financialNorm,
-    required this.healthNorm,
-    required this.careerNorm,
-    required this.safetyNorm,
-  });
-
-  final double financialNorm;
-  final double healthNorm;
-  final double careerNorm;
-  final double safetyNorm;
-}
-
-class DigitalPrivacyRiskInputs {
-  const DigitalPrivacyRiskInputs({
+class HealthRiskInputs {
+  const HealthRiskInputs({
     required this.factorLevels,
     required this.cross,
     this.horizonMonths = 12,
     this.monteCarloSamples = 384,
-    this.randomSeed = 0xD16D1A1,
+    this.randomSeed = 0xEAA1D7,
   });
 
-  /// Flat list aligned with [kDigitalPrivacySubcategoryDefs] factor order (each 0–100).
   final List<int> factorLevels;
-  final DigitalPeerCrossSignals cross;
+  final AllCategoryPeerNorms cross;
 
   final int horizonMonths;
   final int monteCarloSamples;
   final int randomSeed;
 }
 
-class DigitalMonteCarloSummary {
-  const DigitalMonteCarloSummary({
+class HealthMonteCarloSummary {
+  const HealthMonteCarloSummary({
     required this.mean,
     required this.p10,
     required this.p50,
@@ -52,8 +36,8 @@ class DigitalMonteCarloSummary {
   final int samples;
 }
 
-class DigitalPrivacyRiskResult {
-  const DigitalPrivacyRiskResult({
+class HealthRiskResult {
+  const HealthRiskResult({
     required this.pointNorm,
     required this.pointScore,
     required this.subcategoryStress,
@@ -77,35 +61,31 @@ class DigitalPrivacyRiskResult {
   final double horizonFactor;
   final double maskingPenalty;
   final List<String> regimeTags;
-  final DigitalMonteCarloSummary? monteCarlo;
+  final HealthMonteCarloSummary? monteCarlo;
 }
 
-class DigitalPrivacyAdaptiveState {
-  DigitalPrivacyAdaptiveState({
+class HealthAdaptiveState {
+  HealthAdaptiveState({
     required this.subWeights,
     required this.factorWeights,
   });
 
-  factory DigitalPrivacyAdaptiveState.initial() {
+  factory HealthAdaptiveState.initial() {
     assert(
-      kDigitalPrivacySubcategoryWeights.length ==
-          kDigitalPrivacySubcategoryDefs.length,
+      kHealthSubcategoryWeights.length == kHealthSubcategoryDefs.length,
     );
     assert(
-      kDigitalPrivacyFactorWeightPriors.length ==
-          kDigitalPrivacySubcategoryDefs.length,
+      kHealthFactorWeightPriors.length == kHealthSubcategoryDefs.length,
     );
     final sw =
-        _normalizePositive(List<double>.from(kDigitalPrivacySubcategoryWeights));
+        _normalizePositive(List<double>.from(kHealthSubcategoryWeights));
     final fw = <List<double>>[];
-    for (var s = 0; s < kDigitalPrivacySubcategoryDefs.length; s++) {
-      final pri = kDigitalPrivacyFactorWeightPriors[s];
-      assert(
-        pri.length == kDigitalPrivacySubcategoryDefs[s].factorLabels.length,
-      );
+    for (var s = 0; s < kHealthSubcategoryDefs.length; s++) {
+      final pri = kHealthFactorWeightPriors[s];
+      assert(pri.length == kHealthSubcategoryDefs[s].factorLabels.length);
       fw.add(_normalizePositive(List<double>.from(pri)));
     }
-    return DigitalPrivacyAdaptiveState(subWeights: sw, factorWeights: fw);
+    return HealthAdaptiveState(subWeights: sw, factorWeights: fw);
   }
 
   List<double> subWeights;

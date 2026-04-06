@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/category_overview_slice.dart';
 import '../../utils/category_risk_bar_colors.dart';
+import '../../utils/risk_level_scale.dart';
 import '../../utils/risk_score.dart';
 import 'category_overview_score_bar.dart';
 
@@ -152,21 +153,37 @@ class CategoryOverviewLegendChip extends StatelessWidget {
   }
 }
 
-/// Equal-width segments from flat factor lists (non-financial categories).
+/// Segments for Health / Career / Personal Safety overview bars.
+/// Factors at **0%** do not appear on the bar or legend (no contribution).
+/// Remaining factors split the bar **equally**.
 List<CategoryOverviewBarSlice> categorySlicesFromFactors(
   List<String> labels,
   List<int> levels,
 ) {
   final n = labels.length;
   if (n == 0) return [];
-  return List.generate(n, (i) {
-    final lv = levels[i].clamp(0, 4);
-    return CategoryOverviewBarSlice(
-      title: labels[i],
-      share: 1.0 / n,
-      riskScore: RiskScore.fromNorm(lv / 4.0),
-      factorLabels: [labels[i]],
-      factorLevels: [lv],
-    );
-  });
+  assert(
+    levels.length == n,
+    'levels.length (${levels.length}) != labels.length ($n)',
+  );
+  final active = <int>[];
+  for (var i = 0; i < n; i++) {
+    if (RiskLevelScale.clamp(levels[i]) > 0) {
+      active.add(i);
+    }
+  }
+  if (active.isEmpty) return [];
+  final k = active.length;
+  final share = 1.0 / k;
+  return [
+    for (final i in active)
+      CategoryOverviewBarSlice(
+        title: labels[i],
+        share: share,
+        riskScore:
+            RiskScore.fromNorm(RiskLevelScale.toNorm(RiskLevelScale.clamp(levels[i]))),
+        factorLabels: [labels[i]],
+        factorLevels: [RiskLevelScale.clamp(levels[i])],
+      ),
+  ];
 }

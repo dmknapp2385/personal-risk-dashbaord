@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import '../data/digital_privacy_subcategories.dart';
+import '../utils/risk_level_scale.dart';
 import '../utils/risk_score.dart';
 import 'digital_privacy_risk_types.dart';
 
@@ -65,7 +66,7 @@ class DigitalPrivacyRiskEngine {
     DigitalPrivacyRiskInputs inputs,
     DigitalPrivacyAdaptiveState adaptive,
   ) {
-    final uFlat = levels.map((L) => (L.clamp(0, 4)) / 4.0).toList();
+    final uFlat = levels.map(RiskLevelScale.toNorm).toList();
 
     final subStress = <double>[];
     var offset = 0;
@@ -237,7 +238,7 @@ class DigitalPrivacyRiskEngine {
     for (var s = 0; s < kDigitalPrivacySubcategoryDefs.length; s++) {
       final n = kDigitalPrivacySubcategoryDefs[s].factorLabels.length;
       final seg = levels.sublist(offset, offset + n);
-      final u = seg.map((L) => (L.clamp(0, 4)) / 4.0).toList();
+      final u = seg.map(RiskLevelScale.toNorm).toList();
       final idealF = u.map((x) => x + 0.08).toList();
       _normalizeIdeal(idealF);
       final row = adaptive.factorWeights[s];
@@ -301,11 +302,11 @@ class DigitalPrivacyRiskEngine {
 
   List<int> _perturbLevels(List<int> base, math.Random rnd) {
     return base.map((L) {
-      final u = (L.clamp(0, 4)) / 4.0;
+      final u = RiskLevelScale.toNorm(L);
       final sigma = 0.055 + 0.11 * u;
       var up = u + _gaussian(rnd) * sigma;
       up = up.clamp(0.0, 1.0);
-      return (up * 4).round().clamp(0, 4);
+      return RiskLevelScale.clamp((up * RiskLevelScale.max).round());
     }).toList();
   }
 
