@@ -3,47 +3,33 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart' show Ticker;
 
+import '../../models/category_overview_slice.dart';
 import '../../utils/category_risk_bar_colors.dart';
+import '../../utils/risk_level_scale.dart';
 import '../../utils/risk_score.dart';
 
-/// One row in the financial overview bar + hover card.
-class FinancialOverviewBarSlice {
-  const FinancialOverviewBarSlice({
-    required this.title,
-    required this.share,
-    required this.riskScore,
-    required this.factorLabels,
-    required this.factorLevels,
-  });
-
-  final String title;
-  final double share;
-  /// 0–1000, from average factor levels in this subcategory (same norm as category score).
-  final double riskScore;
-  final List<String> factorLabels;
-  final List<int> factorLevels;
-}
-
-/// 0–1000 track; fill = [overallScore]. Segments use [CategoryRiskBarColors] from each
-/// subcategory’s local risk (matches home “mini bar” logic). Hover shows factors + levels.
-class FinancialOverviewScoreBar extends StatefulWidget {
-  const FinancialOverviewScoreBar({
+/// 0–1000 track; fill = [overallScore]. Segments use [CategoryRiskBarColors].
+/// Hover shows factor lines when slices include them.
+class CategoryOverviewScoreBar extends StatefulWidget {
+  const CategoryOverviewScoreBar({
     super.key,
     required this.overallScore,
     required this.slices,
+    required this.caption,
     this.scaleLabels = const ['VL', 'L', 'M', 'H', 'VH'],
   });
 
   final double overallScore;
-  final List<FinancialOverviewBarSlice> slices;
+  final List<CategoryOverviewBarSlice> slices;
+  final String caption;
   final List<String> scaleLabels;
 
   @override
-  State<FinancialOverviewScoreBar> createState() =>
-      _FinancialOverviewScoreBarState();
+  State<CategoryOverviewScoreBar> createState() =>
+      _CategoryOverviewScoreBarState();
 }
 
-class _FinancialOverviewScoreBarState extends State<FinancialOverviewScoreBar>
+class _CategoryOverviewScoreBarState extends State<CategoryOverviewScoreBar>
     with SingleTickerProviderStateMixin {
   static const _barHeight = 26.0;
   static const _cardWidth = 300.0;
@@ -84,25 +70,55 @@ class _FinancialOverviewScoreBarState extends State<FinancialOverviewScoreBar>
     _hoverOverlayEntry = null;
   }
 
+  static List<double> _segmentWidths(
+    double fillWidth,
+    List<double> shares,
+    int n,
+  ) {
+    if (fillWidth <= 0 || n == 0) {
+      return List<double>.filled(n, 0.0);
+    }
+    var lastPositive = -1;
+    for (var i = n - 1; i >= 0; i--) {
+      if (shares[i] > 1e-12) {
+        lastPositive = i;
+        break;
+      }
+    }
+    if (lastPositive < 0) {
+      return List<double>.filled(n, 0.0);
+    }
+    final widths = List<double>.filled(n, 0.0);
+    var used = 0.0;
+    for (var i = 0; i < n; i++) {
+      final share = shares[i].clamp(0.0, 1.0);
+      if (share <= 1e-12) continue;
+      if (i == lastPositive) {
+        widths[i] = (fillWidth - used).clamp(0.0, fillWidth);
+      } else {
+        final w = (fillWidth * share).clamp(0.0, fillWidth);
+        widths[i] = w;
+        used += w;
+      }
+    }
+    return widths;
+  }
+
   static double _segmentCenterX(
     double fillWidth,
     List<double> shares,
     int n,
     int index,
   ) {
-    var used = 0.0;
+    final widths = _segmentWidths(fillWidth, shares, n);
+    if (index < 0 || index >= n) return fillWidth / 2;
+    var x = 0.0;
     for (var i = 0; i < n; i++) {
-      final isLast = i == n - 1;
-      final share = shares[i].clamp(0.0, 1.0);
-      final segW = isLast
-          ? (fillWidth - used).clamp(0.0, fillWidth)
-          : (fillWidth * share).clamp(0.0, fillWidth);
+      final w = widths[i];
       if (i == index) {
-        return used + segW / 2;
+        return x + w / 2;
       }
-      if (!isLast) {
-        used += segW;
-      }
+      x += w;
     }
     return fillWidth / 2;
   }
@@ -110,9 +126,8 @@ class _FinancialOverviewScoreBarState extends State<FinancialOverviewScoreBar>
   List<double> _shares() {
     final raw = widget.slices.map((e) => e.share.clamp(0.0, 1.0)).toList();
     final sum = raw.fold<double>(0, (a, b) => a + b);
-    if (sum <= 0) {
-      final n = widget.slices.length;
-      return List<double>.filled(n, 1.0 / n);
+    if (sum <= 1e-12) {
+      return List<double>.filled(widget.slices.length, 0.0);
     }
     return raw.map((s) => s / sum).toList();
   }
@@ -237,7 +252,7 @@ class _FinancialOverviewScoreBarState extends State<FinancialOverviewScoreBar>
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Weighted share inside your score (hover for factors · same colors as risk level below)',
+              widget.caption,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: cs.onSurfaceVariant,
               ),
@@ -264,24 +279,36 @@ class _FinancialOverviewScoreBarState extends State<FinancialOverviewScoreBar>
                     child: SizedBox(
                       width: fillW,
                       height: _barHeight,
-                      child: fillW <= 0 || slices.isEmpty
+                      child: fillW <= 0
                           ? const SizedBox.shrink()
-                          : _FilledFinancialSegmentRow(
-                              fillWidth: fillW,
-                              height: _barHeight,
-                              slices: slices,
-                              shares: shares,
-                              onHoverEnter: (i) {
-                                _cancelHide();
-                                setState(() => _hoverIndex = i);
-                                WidgetsBinding.instance
-                                    .addPostFrameCallback((_) {
-                                  if (!mounted || _hoverIndex == null) return;
-                                  _ensureHoverOverlay();
-                                });
-                              },
-                              onHoverExit: _scheduleHide,
-                            ),
+                          : slices.isEmpty
+                              ? ColoredBox(
+                                  color: cs.surfaceContainerHigh
+                                      .withValues(alpha: 0.85),
+                                  child: SizedBox(
+                                    width: fillW,
+                                    height: _barHeight,
+                                  ),
+                                )
+                              : _FilledSegmentRow(
+                                  fillWidth: fillW,
+                                  height: _barHeight,
+                                  colorScheme: cs,
+                                  slices: slices,
+                                  shares: shares,
+                                  onHoverEnter: (i) {
+                                    _cancelHide();
+                                    setState(() => _hoverIndex = i);
+                                    WidgetsBinding.instance
+                                        .addPostFrameCallback((_) {
+                                      if (!mounted || _hoverIndex == null) {
+                                        return;
+                                      }
+                                      _ensureHoverOverlay();
+                                    });
+                                  },
+                                  onHoverExit: _scheduleHide,
+                                ),
                     ),
                   ),
                 ],
@@ -312,10 +339,11 @@ class _FinancialOverviewScoreBarState extends State<FinancialOverviewScoreBar>
   }
 }
 
-class _FilledFinancialSegmentRow extends StatelessWidget {
-  const _FilledFinancialSegmentRow({
+class _FilledSegmentRow extends StatelessWidget {
+  const _FilledSegmentRow({
     required this.fillWidth,
     required this.height,
+    required this.colorScheme,
     required this.slices,
     required this.shares,
     required this.onHoverEnter,
@@ -324,17 +352,24 @@ class _FilledFinancialSegmentRow extends StatelessWidget {
 
   final double fillWidth;
   final double height;
-  final List<FinancialOverviewBarSlice> slices;
+  final ColorScheme colorScheme;
+  final List<CategoryOverviewBarSlice> slices;
   final List<double> shares;
   final void Function(int index) onHoverEnter;
   final VoidCallback onHoverExit;
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final cs = colorScheme;
     if (fillWidth <= 0 || slices.isEmpty) {
       return const SizedBox.shrink();
     }
+
+    final widths = _CategoryOverviewScoreBarState._segmentWidths(
+      fillWidth,
+      shares,
+      slices.length,
+    );
 
     final divider = BorderSide(
       color: cs.outline.withValues(alpha: 0.42),
@@ -342,14 +377,10 @@ class _FilledFinancialSegmentRow extends StatelessWidget {
     );
 
     final children = <Widget>[];
-    var used = 0.0;
+    var firstPainted = false;
 
     for (var i = 0; i < slices.length; i++) {
-      final isLast = i == slices.length - 1;
-      final share = shares[i].clamp(0.0, 1.0);
-      final segW = isLast
-          ? (fillWidth - used).clamp(0.0, fillWidth)
-          : (fillWidth * share).clamp(0.0, fillWidth);
+      final segW = widths[i];
       if (segW <= 0) continue;
 
       children.add(
@@ -364,7 +395,7 @@ class _FilledFinancialSegmentRow extends StatelessWidget {
               decoration: BoxDecoration(
                 color: CategoryRiskBarColors.fillForScore(slices[i].riskScore),
                 border: Border(
-                  left: i > 0 ? divider : BorderSide.none,
+                  left: firstPainted ? divider : BorderSide.none,
                 ),
               ),
               child: const SizedBox.expand(),
@@ -372,14 +403,12 @@ class _FilledFinancialSegmentRow extends StatelessWidget {
           ),
         ),
       );
-      if (!isLast) {
-        used += segW;
-      }
+      firstPainted = true;
     }
 
     if (children.isEmpty) {
       return ColoredBox(
-        color: CategoryRiskBarColors.fillForScore(slices[0].riskScore),
+        color: cs.surfaceContainerHigh.withValues(alpha: 0.85),
         child: SizedBox(width: fillWidth, height: height),
       );
     }
@@ -395,7 +424,7 @@ class _SliceHoverPreview extends StatelessWidget {
     required this.scaleLabels,
   });
 
-  final FinancialOverviewBarSlice slice;
+  final CategoryOverviewBarSlice slice;
   final String shareLabel;
   final List<String> scaleLabels;
 
@@ -437,8 +466,9 @@ class _SliceHoverPreview extends StatelessWidget {
           slice.factorLabels.length.clamp(0, maxFactors),
           (j) {
             final label = slice.factorLabels[j];
-            final lvl = slice.factorLevels[j].clamp(0, 4);
-            final tab = scaleLabels[lvl.clamp(0, scaleLabels.length - 1)];
+            final lvl = RiskLevelScale.clamp(slice.factorLevels[j]);
+            final tab =
+                scaleLabels[RiskLevelScale.bandIndex(lvl).clamp(0, scaleLabels.length - 1)];
             return Padding(
               padding: const EdgeInsets.only(bottom: 3),
               child: Row(
@@ -454,7 +484,7 @@ class _SliceHoverPreview extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    tab,
+                    '$lvl% · $tab',
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: cs.primary,
                       fontWeight: FontWeight.w700,

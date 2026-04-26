@@ -1,15 +1,15 @@
 import 'dart:math' as math;
 
-import '../data/financial_subcategories.dart';
+import '../data/digital_privacy_subcategories.dart';
 import '../utils/risk_level_scale.dart';
 import '../utils/risk_score.dart';
-import 'financial_risk_types.dart';
+import 'digital_privacy_risk_types.dart';
 
-/// Orchestrates financial stress: hierarchical weights, tail coupling (“collapse”
-/// motifs), cross-category correlation, horizon scaling, anti-masking, Monte Carlo,
-/// and lightweight online adaptation of weights (transparent rules—swap for real ML later).
-class FinancialRiskEngine {
-  FinancialRiskEngine({
+/// Same pipeline as [FinancialRiskEngine]: hierarchical weighted stress, tail blend,
+/// non‑linear coupling (weak auth × phishing × exposure), peer cross‑signals,
+/// horizon scaling, anti‑masking, Monte Carlo, and online weight adaptation.
+class DigitalPrivacyRiskEngine {
+  DigitalPrivacyRiskEngine({
     this.subLearningRate = 0.045,
     this.factorLearningRate = 0.032,
     this.minSubWeight = 0.065,
@@ -24,20 +24,18 @@ class FinancialRiskEngine {
   final double minSubWeight;
   final double maxSubWeight;
   final double powerMeanP;
-  /// How much max-within-sub factor stress blends into the sub score (anti-masking).
   final double tailBlend;
-  /// How strongly collapse coupling can dominate the smooth aggregate.
   final double collapseGamma;
 
-  FinancialRiskResult evaluate(
-    FinancialRiskInputs inputs,
-    FinancialAdaptiveState adaptive, {
+  DigitalPrivacyRiskResult evaluate(
+    DigitalPrivacyRiskInputs inputs,
+    DigitalPrivacyAdaptiveState adaptive, {
     bool updateAdaptive = true,
   }) {
     final levels = List<int>.from(inputs.factorLevels);
     final core = _evaluateCore(levels, inputs, adaptive);
 
-    FinancialMonteCarloSummary? mc;
+    DigitalMonteCarloSummary? mc;
     if (inputs.monteCarloSamples > 0) {
       mc = _runMonteCarlo(levels, inputs, adaptive);
     }
@@ -46,7 +44,7 @@ class FinancialRiskEngine {
       _onlineWeightUpdate(adaptive, core.subStressRaw, levels);
     }
 
-    return FinancialRiskResult(
+    return DigitalPrivacyRiskResult(
       pointNorm: core.norm,
       pointScore: RiskScore.fromNorm(core.norm),
       subcategoryStress: List<double>.from(core.subStressRaw),
@@ -63,18 +61,17 @@ class FinancialRiskEngine {
     );
   }
 
-  /// Core pipeline without learning side effects (used inside MC draws).
   _CoreOutcome _evaluateCore(
     List<int> levels,
-    FinancialRiskInputs inputs,
-    FinancialAdaptiveState adaptive,
+    DigitalPrivacyRiskInputs inputs,
+    DigitalPrivacyAdaptiveState adaptive,
   ) {
     final uFlat = levels.map(RiskLevelScale.toNorm).toList();
 
     final subStress = <double>[];
     var offset = 0;
-    for (var s = 0; s < kFinancialSubcategoryDefs.length; s++) {
-      final n = kFinancialSubcategoryDefs[s].factorLabels.length;
+    for (var s = 0; s < kDigitalPrivacySubcategoryDefs.length; s++) {
+      final n = kDigitalPrivacySubcategoryDefs[s].factorLabels.length;
       final seg = uFlat.sublist(offset, offset + n);
       final w = adaptive.factorWeights[s];
       subStress.add(_subStress(seg, w));
@@ -126,12 +123,15 @@ class FinancialRiskEngine {
     return ((1 - tailBlend) * pMean + tailBlend * mx).clamp(0.0, 1.0);
   }
 
+  /// Coupling: identity weakness × phishing exposure × data‑hygiene stress
+  /// (indices 0, 1, 2), analogous to liquidity × leverage × concentration.
   double _collapseTerm(List<double> sub) {
-    if (sub.length < 4) return 0;
-    final liq = sub[0];
-    final lev = sub[1];
-    final conc = sub[3];
-    final raw = math.pow(math.max(1e-9, liq * lev), 0.55) * (1 + 0.24 * conc);
+    if (sub.length < 3) return 0;
+    final auth = sub[0];
+    final phish = sub[1];
+    final dataHygiene = sub[2];
+    final raw = math.pow(math.max(1e-9, auth * phish), 0.55) *
+        (1 + 0.24 * dataHygiene);
     return raw.clamp(0.0, 0.48);
   }
 
@@ -145,16 +145,16 @@ class FinancialRiskEngine {
     return s > 0 ? (t / s) : 0.0;
   }
 
-  double _correlationMultiplier(CategoryCrossSignals c) {
-    const kCareer = 0.11;
-    const kHealth = 0.06;
+  double _correlationMultiplier(DigitalPeerCrossSignals c) {
+    const kFin = 0.10;
+    const kCareer = 0.09;
+    const kHealth = 0.05;
     const kSafety = 0.05;
-    const kDig = 0.07;
     var m = 1.0 +
+        kFin * (c.financialNorm - 0.5) +
         kCareer * (c.careerNorm - 0.5) +
         kHealth * (c.healthNorm - 0.5) +
-        kSafety * (c.safetyNorm - 0.5) +
-        kDig * (c.digitalNorm - 0.5);
+        kSafety * (c.safetyNorm - 0.5);
     return m.clamp(0.90, 1.14);
   }
 
@@ -200,29 +200,29 @@ class FinancialRiskEngine {
     double maskPen,
   ) {
     final tags = <String>[];
-    if (sub.length >= 4 && sub[0] > 0.55 && sub[1] > 0.55) {
-      tags.add('Liquidity–leverage stress couplet');
+    if (sub.length >= 2 && sub[0] > 0.55 && sub[1] > 0.55) {
+      tags.add('Authentication–phishing stress couplet');
     }
     if (collapse > 0.22) {
-      tags.add('Collapse-shaped coupling (tail dependent)');
+      tags.add('Credential‑theft coupling (tail dependent)');
     }
-    if (sub.length > 3 && sub[3] > 0.6) {
-      tags.add('Concentration amplification');
+    if (sub.length > 2 && sub[2] > 0.6) {
+      tags.add('Exposure & reuse amplification');
     }
     if (maskPen > 0) {
       tags.add('Low dispersion penalty (anti-masking)');
     }
     if (agg > 0.72) {
-      tags.add('Elevated composite financial stress');
+      tags.add('Elevated composite digital risk');
     }
     if (tags.isEmpty) {
-      tags.add('Baseline financial profile');
+      tags.add('Baseline digital profile');
     }
     return tags;
   }
 
   void _onlineWeightUpdate(
-    FinancialAdaptiveState adaptive,
+    DigitalPrivacyAdaptiveState adaptive,
     List<double> subStress,
     List<int> levels,
   ) {
@@ -235,15 +235,16 @@ class FinancialRiskEngine {
     _clampRenormalize(adaptive.subWeights, minSubWeight, maxSubWeight);
 
     var offset = 0;
-    for (var s = 0; s < kFinancialSubcategoryDefs.length; s++) {
-      final n = kFinancialSubcategoryDefs[s].factorLabels.length;
+    for (var s = 0; s < kDigitalPrivacySubcategoryDefs.length; s++) {
+      final n = kDigitalPrivacySubcategoryDefs[s].factorLabels.length;
       final seg = levels.sublist(offset, offset + n);
       final u = seg.map(RiskLevelScale.toNorm).toList();
       final idealF = u.map((x) => x + 0.08).toList();
       _normalizeIdeal(idealF);
       final row = adaptive.factorWeights[s];
       for (var i = 0; i < row.length; i++) {
-        row[i] = (1 - factorLearningRate) * row[i] + factorLearningRate * idealF[i];
+        row[i] =
+            (1 - factorLearningRate) * row[i] + factorLearningRate * idealF[i];
       }
       _clampRenormalize(row, 0.08, 0.55);
       offset += n;
@@ -269,10 +270,10 @@ class FinancialRiskEngine {
     }
   }
 
-  FinancialMonteCarloSummary _runMonteCarlo(
+  DigitalMonteCarloSummary _runMonteCarlo(
     List<int> baseLevels,
-    FinancialRiskInputs inputs,
-    FinancialAdaptiveState adaptive,
+    DigitalPrivacyRiskInputs inputs,
+    DigitalPrivacyAdaptiveState adaptive,
   ) {
     final rnd = math.Random(inputs.randomSeed);
     final scores = <double>[];
@@ -290,7 +291,7 @@ class FinancialRiskEngine {
     }
 
     final mean = scores.fold<double>(0, (a, b) => a + b) / scores.length;
-    return FinancialMonteCarloSummary(
+    return DigitalMonteCarloSummary(
       mean: mean,
       p10: q(scores, 0.10),
       p50: q(scores, 0.50),

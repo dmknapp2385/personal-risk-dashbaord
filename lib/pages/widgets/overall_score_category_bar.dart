@@ -70,26 +70,57 @@ class _OverallScoreCategoryBarState extends State<OverallScoreCategoryBar>
     _hoverOverlayEntry = null;
   }
 
-  /// Same segment widths as [_FilledCategorySegmentRow]; center X from track left.
+  /// Width of each segment; remainder goes to the last segment with share &gt; 0 only.
+  static List<double> _segmentWidths(
+    double fillWidth,
+    List<double> shares,
+    int n,
+  ) {
+    if (fillWidth <= 0 || n == 0) {
+      return List<double>.filled(n, 0.0);
+    }
+    var lastPositive = -1;
+    for (var i = n - 1; i >= 0; i--) {
+      if (shares[i] > 1e-12) {
+        lastPositive = i;
+        break;
+      }
+    }
+    if (lastPositive < 0) {
+      return List<double>.filled(n, 0.0);
+    }
+    final widths = List<double>.filled(n, 0.0);
+    var used = 0.0;
+    for (var i = 0; i < n; i++) {
+      final share = shares[i].clamp(0.0, 1.0);
+      if (share <= 1e-12) continue;
+      if (i == lastPositive) {
+        widths[i] = (fillWidth - used).clamp(0.0, fillWidth);
+      } else {
+        final w = (fillWidth * share).clamp(0.0, fillWidth);
+        widths[i] = w;
+        used += w;
+      }
+    }
+    return widths;
+  }
+
+  /// Center X of segment [index] from track left (matches [_segmentWidths]).
   static double _segmentCenterX(
     double fillWidth,
     List<double> shares,
     int n,
     int index,
   ) {
-    var used = 0.0;
+    final widths = _segmentWidths(fillWidth, shares, n);
+    if (index < 0 || index >= n) return fillWidth / 2;
+    var x = 0.0;
     for (var i = 0; i < n; i++) {
-      final isLast = i == n - 1;
-      final share = shares[i].clamp(0.0, 1.0);
-      final segW = isLast
-          ? (fillWidth - used).clamp(0.0, fillWidth)
-          : (fillWidth * share).clamp(0.0, fillWidth);
+      final w = widths[i];
       if (i == index) {
-        return used + segW / 2;
+        return x + w / 2;
       }
-      if (!isLast) {
-        used += segW;
-      }
+      x += w;
     }
     return fillWidth / 2;
   }
@@ -180,9 +211,10 @@ class _OverallScoreCategoryBarState extends State<OverallScoreCategoryBar>
   static List<double> _shares(List<HomeCategoryScore> scores) {
     final raw = scores.map((e) => e.score.clamp(0.0, 1000.0)).toList();
     final sum = raw.fold<double>(0, (a, b) => a + b);
-    if (sum <= 0) {
-      final n = scores.length;
-      return List<double>.filled(n, 1.0 / n);
+    // When every category is at 0, do not split the bar equally (that implied each
+    // still "owned" part of the mix). Zero share → no colored slice.
+    if (sum <= 1e-9) {
+      return List<double>.filled(scores.length, 0.0);
     }
     return raw.map((s) => s / sum).toList();
   }
@@ -241,6 +273,7 @@ class _OverallScoreCategoryBarState extends State<OverallScoreCategoryBar>
                           : _FilledCategorySegmentRow(
                               fillWidth: fillW,
                               height: _barHeight,
+                              colorScheme: cs,
                               scores: scores,
                               shares: shares,
                               segmentFill: (i) => CategoryRiskBarColors.fillForScore(
@@ -292,6 +325,7 @@ class _FilledCategorySegmentRow extends StatelessWidget {
   const _FilledCategorySegmentRow({
     required this.fillWidth,
     required this.height,
+    required this.colorScheme,
     required this.scores,
     required this.shares,
     required this.segmentFill,
@@ -302,6 +336,7 @@ class _FilledCategorySegmentRow extends StatelessWidget {
 
   final double fillWidth;
   final double height;
+  final ColorScheme colorScheme;
   final List<HomeCategoryScore> scores;
   final List<double> shares;
   final Color Function(int index) segmentFill;
@@ -311,10 +346,16 @@ class _FilledCategorySegmentRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final cs = colorScheme;
     if (fillWidth <= 0 || scores.isEmpty) {
       return const SizedBox.shrink();
     }
+
+    final widths = _OverallScoreCategoryBarState._segmentWidths(
+      fillWidth,
+      shares,
+      scores.length,
+    );
 
     final divider = BorderSide(
       color: cs.outline.withValues(alpha: 0.42),
@@ -322,14 +363,10 @@ class _FilledCategorySegmentRow extends StatelessWidget {
     );
 
     final children = <Widget>[];
-    var used = 0.0;
+    var firstPainted = false;
 
     for (var i = 0; i < scores.length; i++) {
-      final isLast = i == scores.length - 1;
-      final share = shares[i].clamp(0.0, 1.0);
-      final segW = isLast
-          ? (fillWidth - used).clamp(0.0, fillWidth)
-          : (fillWidth * share).clamp(0.0, fillWidth);
+      final segW = widths[i];
       if (segW <= 0) continue;
 
       children.add(
@@ -349,7 +386,7 @@ class _FilledCategorySegmentRow extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: segmentFill(i),
                     border: Border(
-                      left: i > 0 ? divider : BorderSide.none,
+                      left: firstPainted ? divider : BorderSide.none,
                     ),
                   ),
                   child: const SizedBox.expand(),
@@ -359,14 +396,13 @@ class _FilledCategorySegmentRow extends StatelessWidget {
           ),
         ),
       );
-      if (!isLast) {
-        used += segW;
-      }
+      firstPainted = true;
     }
 
     if (children.isEmpty) {
+      // All categories at 0 (or fill is tiny): neutral slab, not first category color.
       return ColoredBox(
-        color: segmentFill(0),
+        color: cs.surfaceContainerHigh.withValues(alpha: 0.85),
         child: SizedBox(width: fillWidth, height: height),
       );
     }

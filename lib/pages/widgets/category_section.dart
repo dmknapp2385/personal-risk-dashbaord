@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../utils/risk_level_scale.dart';
 import '../../utils/risk_score.dart';
+import 'risk_level_slider_field.dart';
+import 'score_info_icon.dart';
 
 class CategorySection extends StatelessWidget {
   const CategorySection({
@@ -12,6 +15,8 @@ class CategorySection extends StatelessWidget {
     required this.onLevelChanged,
     required this.scaleLabels,
     this.showFactorImpactSection = true,
+    this.titleHelp,
+    this.factorHelps,
   });
 
   final String title;
@@ -24,10 +29,17 @@ class CategorySection extends StatelessWidget {
   /// When false, hides “Impact by sub-category”, mini bars, and summary line.
   final bool showFactorImpactSection;
 
+  /// Tooltip/dialog copy for what this subcategory (section) measures.
+  final String? titleHelp;
+
+  /// One entry per factor; use null where no info icon is needed.
+  final List<String?>? factorHelps;
+
   static const Color _lowColor = Color(0xFF16A34A); // green
   static const Color _highColor = Color(0xFFDC2626); // red
 
-  double get _t => levels.isEmpty ? 0 : _avgLevel / 4.0;
+  double get _t =>
+      levels.isEmpty ? 0 : _avgLevel / RiskLevelScale.max;
 
   double get _avgLevel {
     final sum = levels.isEmpty ? 0 : levels.reduce((a, b) => a + b);
@@ -65,6 +77,10 @@ class CategorySection extends StatelessWidget {
     final barColor = _riskColor.withOpacity(0.28);
     final outlineColor = _riskColor.withOpacity(0.55);
     final levelsSum = levels.isEmpty ? 0 : levels.reduce((a, b) => a + b);
+    assert(
+      factorHelps == null || factorHelps!.length == factorLabels.length,
+      'factorHelps length must match factorLabels',
+    );
 
     return Container(
       decoration: BoxDecoration(
@@ -84,9 +100,21 @@ class CategorySection extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      title,
-                      style: theme.textTheme.titleMedium,
+                    Wrap(
+                      spacing: 4,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(
+                          title,
+                          style: theme.textTheme.titleMedium,
+                        ),
+                        if (titleHelp != null)
+                          ScoreInfoIcon(
+                            message: titleHelp!,
+                            dialogTitle: title,
+                          ),
+                      ],
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -107,7 +135,7 @@ class CategorySection extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            'Answer (mock)',
+            'Your estimate (0–100%)',
             style: theme.textTheme.bodySmall?.copyWith(
               color: cs.onSurfaceVariant,
             ),
@@ -121,6 +149,7 @@ class CategorySection extends StatelessWidget {
               onLevelChanged: (newLevel) =>
                   onLevelChanged(factorIndex, newLevel),
               scaleLabels: scaleLabels,
+              questionHelp: factorHelps?[i],
             );
           }),
           if (showFactorImpactSection) ...[
@@ -167,62 +196,45 @@ class _FactorSegmentedQuestion extends StatelessWidget {
     required this.level,
     required this.onLevelChanged,
     required this.scaleLabels,
+    this.questionHelp,
   });
 
   final String question;
   final int level;
   final ValueChanged<int> onLevelChanged;
   final List<String> scaleLabels;
-
-  static const Color _lowColor = Color(0xFF16A34A); // green
-  static const Color _highColor = Color(0xFFDC2626); // red
+  final String? questionHelp;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            question,
-            style: theme.textTheme.bodyLarge?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+          Wrap(
+            spacing: 4,
+            runSpacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text(
+                question,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (questionHelp != null)
+                ScoreInfoIcon(
+                  message: questionHelp!,
+                  dialogTitle: question,
+                ),
+            ],
           ),
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 10,
-            runSpacing: 8,
-            children: List.generate(5, (i) {
-              final t = i / 4.0;
-              final chipColor = Color.lerp(_lowColor, _highColor, t)!;
-              final selected = level == i;
-              return OutlinedButton(
-                onPressed: () => onLevelChanged(i),
-                style: OutlinedButton.styleFrom(
-                  backgroundColor: selected ? chipColor.withOpacity(0.14) : null,
-                  side: BorderSide(
-                    color: chipColor.withOpacity(selected ? 1.0 : 0.55),
-                    width: selected ? 1.6 : 1.2,
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                ),
-                child: Text(
-                  scaleLabels[i],
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: selected ? chipColor : cs.onSurfaceVariant,
-                    fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
-                  ),
-                ),
-              );
-            }),
+          RiskLevelSliderField(
+            value: RiskLevelScale.clamp(level),
+            anchorLabels: scaleLabels,
+            onChanged: onLevelChanged,
           ),
         ],
       ),
@@ -251,7 +263,7 @@ class _MiniImpactBar extends StatelessWidget {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
-    final t = level.clamp(0, 4) / 4.0;
+    final t = RiskLevelScale.toNorm(level);
     final riskColor = Color.lerp(_lowColor, _highColor, t)!;
 
     return SizedBox(
@@ -279,7 +291,9 @@ class _MiniImpactBar extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            '${scaleLabels[level.clamp(0, 4)]} • ${contributionPct}%',
+            '${RiskLevelScale.clamp(level)}% · '
+            '${scaleLabels[RiskLevelScale.bandIndex(level)]} · '
+            '$contributionPct%',
             style: theme.textTheme.bodySmall?.copyWith(
               color: cs.onSurfaceVariant,
             ),

@@ -27,7 +27,7 @@ class FinancialRiskInputs {
     this.randomSeed = 0xF15CA1E,
   });
 
-  /// Flat list aligned with [kFinancialSubcategoryDefs] factor order.
+  /// Flat list aligned with [kFinancialSubcategoryDefs] factor order (each 0–100).
   final List<int> factorLevels;
   final CategoryCrossSignals cross;
 

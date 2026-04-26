@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'pages/dashboard_page.dart';
+import 'pages/widgets/risk_level_slider_field.dart';
+import 'utils/risk_level_scale.dart';
 
 void main() {
   runApp(const RiskDashboardApp());
@@ -35,35 +37,34 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  // MOCK questionnaire answers: each level is 0..4 where
-  // 0 = very low, 4 = very high. (Later you'll replace these with real inputs.)
-  int _creditDebtToIncome = 2;
-  int _creditUtilization = 1;
-  int _creditDelinquencies = 1;
-  int _creditPaymentStability = 2;
-  int _creditIncomeStability = 1;
+  // MOCK questionnaire answers: each score is 0–100 (stress / exposure).
+  int _creditDebtToIncome = 50;
+  int _creditUtilization = 25;
+  int _creditDelinquencies = 25;
+  int _creditPaymentStability = 50;
+  int _creditIncomeStability = 25;
 
-  int _insuranceCoverageAdequacy = 2;
-  int _insuranceDeductibleSensitivity = 1;
-  int _insuranceLiabilityCoverage = 2;
-  int _insuranceAssetCoverage = 1;
+  int _insuranceCoverageAdequacy = 50;
+  int _insuranceDeductibleSensitivity = 25;
+  int _insuranceLiabilityCoverage = 50;
+  int _insuranceAssetCoverage = 25;
 
-  int _crimeIncidentFrequency = 2;
-  int _crimePropertyCrime = 1;
-  int _crimeViolentCrime = 1;
+  int _crimeIncidentFrequency = 50;
+  int _crimePropertyCrime = 25;
+  int _crimeViolentCrime = 25;
 
-  int _climateHeat = 2;
-  int _climateFlood = 1;
-  int _climateWildfire = 1;
-  int _climateStorm = 2;
-  int _climateResilience = 1;
+  int _climateHeat = 50;
+  int _climateFlood = 25;
+  int _climateWildfire = 25;
+  int _climateStorm = 50;
+  int _climateResilience = 25;
 
   String _crimeLocationInput = '';
 
   double _avgNorm(List<int> levels) {
     if (levels.isEmpty) return 0;
     final sum = levels.reduce((a, b) => a + b).toDouble();
-    return sum / (levels.length * 4.0); // levels are 0..4
+    return sum / (levels.length * RiskLevelScale.max);
   }
 
   double get _creditNorm => _avgNorm([
@@ -191,7 +192,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _setCreditFactor(int index, int level) {
-    final v = level.clamp(0, 4);
+    final v = RiskLevelScale.clamp(level);
     setState(() {
       switch (index) {
         case 0:
@@ -210,7 +211,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _setInsuranceFactor(int index, int level) {
-    final v = level.clamp(0, 4);
+    final v = RiskLevelScale.clamp(level);
     setState(() {
       switch (index) {
         case 0:
@@ -227,7 +228,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _setCrimeFactor(int index, int level) {
-    final v = level.clamp(0, 4);
+    final v = RiskLevelScale.clamp(level);
     setState(() {
       switch (index) {
         case 0:
@@ -242,7 +243,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _setClimateFactor(int index, int level) {
-    final v = level.clamp(0, 4);
+    final v = RiskLevelScale.clamp(level);
     setState(() {
       switch (index) {
         case 0:
@@ -632,7 +633,7 @@ class _DriverFactor {
   });
 
   final String label;
-  final int level; // 0..4
+  final int level; // 0–100
   final int tabIndex;
 }
 
@@ -646,13 +647,15 @@ class _TopDriverChip extends StatelessWidget {
   static const Color _lowColor = Color(0xFF16A34A); // green
   static const Color _highColor = Color(0xFFDC2626); // red
 
-  double get _t => driver.level.clamp(0, 4) / 4.0;
+  double get _t => RiskLevelScale.toNorm(driver.level);
   Color get _riskColor => Color.lerp(_lowColor, _highColor, _t)!;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final tabLabel = _scaleLabels[driver.level.clamp(0, 4)];
+    final pct = RiskLevelScale.clamp(driver.level);
+    final tabLabel =
+        '${_scaleLabels[RiskLevelScale.bandIndex(pct)]} · $pct%';
 
     return InkWell(
       onTap: () {
@@ -1062,7 +1065,7 @@ class _CategorySection extends StatelessWidget {
   static const Color _lowColor = Color(0xFF16A34A); // green
   static const Color _highColor = Color(0xFFDC2626); // red
 
-  double get _t => levels.isEmpty ? 0 : _avgLevel / 4.0;
+  double get _t => levels.isEmpty ? 0 : _avgLevel / RiskLevelScale.max;
 
   double get _avgLevel {
     final sum = levels.isEmpty ? 0 : levels.reduce((a, b) => a + b);
@@ -1142,7 +1145,7 @@ class _CategorySection extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            'Answer (mock)',
+            'Your estimate (0–100%)',
             style: theme.textTheme.bodySmall?.copyWith(
               color: cs.onSurfaceVariant,
             ),
@@ -1207,19 +1210,8 @@ class _FactorSegmentedQuestion extends StatelessWidget {
   final ValueChanged<int> onLevelChanged;
   final List<String> scaleLabels;
 
-  static const Color _lowColor = Color(0xFF16A34A); // green
-  static const Color _highColor = Color(0xFFDC2626); // red
-
-  Color get _riskColor {
-    final t = (level.clamp(0, 4)) / 4.0;
-    return Color.lerp(_lowColor, _highColor, t)!;
-  }
-
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
@@ -1227,37 +1219,15 @@ class _FactorSegmentedQuestion extends StatelessWidget {
         children: [
           Text(
             question,
-            style: theme.textTheme.bodyLarge?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
           ),
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 10,
-            runSpacing: 8,
-            children: List.generate(5, (i) {
-              final t = i / 4.0;
-              final chipColor = Color.lerp(_lowColor, _highColor, t)!;
-              final selected = level == i;
-              return OutlinedButton(
-                onPressed: () => onLevelChanged(i),
-                style: OutlinedButton.styleFrom(
-                  backgroundColor: selected ? chipColor.withOpacity(0.14) : null,
-                  side: BorderSide(
-                    color: chipColor.withOpacity(selected ? 1.0 : 0.55),
-                    width: selected ? 1.6 : 1.2,
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                ),
-                child: Text(
-                  scaleLabels[i],
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: selected ? chipColor : cs.onSurfaceVariant,
-                    fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
-                  ),
-                ),
-              );
-            }),
+          RiskLevelSliderField(
+            value: RiskLevelScale.clamp(level),
+            anchorLabels: scaleLabels,
+            onChanged: onLevelChanged,
           ),
         ],
       ),
@@ -1286,7 +1256,7 @@ class _MiniImpactBar extends StatelessWidget {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
-    final t = level.clamp(0, 4) / 4.0;
+    final t = RiskLevelScale.toNorm(level);
     final riskColor = Color.lerp(_lowColor, _highColor, t)!;
 
     return SizedBox(
@@ -1314,7 +1284,9 @@ class _MiniImpactBar extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            '${scaleLabels[level.clamp(0, 4)]} • ${contributionPct}%',
+            '${RiskLevelScale.clamp(level)}% · '
+            '${scaleLabels[RiskLevelScale.bandIndex(level)]} · '
+            '$contributionPct%',
             style: theme.textTheme.bodySmall?.copyWith(
               color: cs.onSurfaceVariant,
             ),

@@ -1,43 +1,72 @@
 import 'package:flutter/foundation.dart';
 
+import '../data/career_subcategories.dart';
+import '../data/digital_privacy_subcategories.dart';
 import '../data/financial_subcategories.dart';
+import '../data/health_subcategories.dart';
+import '../data/personal_safety_subcategories.dart';
+import '../engine/all_category_peer_norms.dart';
+import '../engine/career_risk_engine.dart';
+import '../engine/career_risk_types.dart';
+import '../engine/digital_privacy_risk_engine.dart';
+import '../engine/digital_privacy_risk_types.dart';
 import '../engine/financial_risk_engine.dart';
 import '../engine/financial_risk_types.dart';
+import '../engine/health_risk_engine.dart';
+import '../engine/health_risk_types.dart';
+import '../engine/personal_safety_risk_engine.dart';
+import '../engine/personal_safety_risk_types.dart';
 import '../models/driver_factor.dart';
 import '../models/risk_category.dart';
+import '../utils/risk_level_scale.dart';
 import '../utils/risk_score.dart';
 
 /// Holds all mock questionnaire state; notifies listeners so pushed routes stay in sync.
 class RiskInputsController extends ChangeNotifier {
-  /// One level per financial sub-sub factor (0..4); see [kFinancialSubcategoryDefs].
+  /// One score per financial factor (0–100); see [kFinancialSubcategoryDefs].
   List<int> financialFactorLevels = [
-    2, 1, 1, // liquidity
-    2, 1, 1, 1, // obligations
-    2, 1, 1, // asset risk
-    2, 1, 1, // concentration
-    2, 1, 1, // inflation
+    50, 25, 25, // liquidity
+    50, 25, 25, 25, // obligations
+    50, 25, 25, // asset risk
+    50, 25, 25, // concentration
+    50, 25, 25, // inflation
   ];
 
-  int insuranceCoverageAdequacy = 2;
-  int insuranceDeductibleSensitivity = 1;
-  int insuranceLiabilityCoverage = 2;
-  int insuranceAssetCoverage = 1;
+  /// One score per health factor (0–100); see [kHealthSubcategoryDefs].
+  List<int> healthFactorLevels = [
+    50, 25, 25,
+    50, 25, 25,
+    50, 25, 25,
+    50, 25, 25,
+    50, 25, 25,
+  ];
 
-  int crimeIncidentFrequency = 2;
-  int crimePropertyCrime = 1;
-  int crimeViolentCrime = 1;
+  /// One score per career factor (0–100); see [kCareerSubcategoryDefs].
+  List<int> careerFactorLevels = [
+    50, 25, 25,
+    50, 25, 25,
+    50, 25, 25,
+    50, 25, 25,
+    50, 25, 25,
+  ];
 
-  int climateHeat = 2;
-  int climateFlood = 1;
-  int climateWildfire = 1;
-  int climateStorm = 2;
-  int climateResilience = 1;
+  /// One score per personal-safety factor (0–100); see [kPersonalSafetySubcategoryDefs].
+  List<int> personalSafetyFactorLevels = [
+    50, 25, 25,
+    50, 25, 25,
+    50, 25, 25,
+    50, 25, 25,
+    50, 25, 25,
+  ];
 
-  int digitalPasswordHygiene = 2;
-  int digitalPhishingExposure = 1;
-  int digitalBreachExposure = 1;
-  int digitalDeviceSecurity = 2;
-  int digitalOversharing = 1;
+  /// One score per digital factor (0–100); see [kDigitalPrivacySubcategoryDefs].
+  List<int> digitalFactorLevels = [
+    50, 25, 25, // identity & authentication
+    50, 25, 25, // phishing & social engineering
+    50, 25, 25, // data exposure & account hygiene
+    50, 25, 25, // devices & networks
+    50, 25, 25, // privacy & footprint
+  ];
 
   String crimeLocationInput = '';
 
@@ -45,21 +74,54 @@ class RiskInputsController extends ChangeNotifier {
   final FinancialRiskEngine _financialEngine = FinancialRiskEngine();
   FinancialRiskResult? _financialRiskCache;
 
+  final DigitalPrivacyAdaptiveState _digitalAdaptive =
+      DigitalPrivacyAdaptiveState.initial();
+  final DigitalPrivacyRiskEngine _digitalEngine = DigitalPrivacyRiskEngine();
+  DigitalPrivacyRiskResult? _digitalRiskCache;
+
+  final HealthAdaptiveState _healthAdaptive = HealthAdaptiveState.initial();
+  final HealthRiskEngine _healthEngine = HealthRiskEngine();
+  HealthRiskResult? _healthRiskCache;
+
+  final CareerAdaptiveState _careerAdaptive = CareerAdaptiveState.initial();
+  final CareerRiskEngine _careerEngine = CareerRiskEngine();
+  CareerRiskResult? _careerRiskCache;
+
+  final PersonalSafetyAdaptiveState _personalSafetyAdaptive =
+      PersonalSafetyAdaptiveState.initial();
+  final PersonalSafetyRiskEngine _personalSafetyEngine =
+      PersonalSafetyRiskEngine();
+  PersonalSafetyRiskResult? _personalSafetyRiskCache;
+
   @override
   void notifyListeners() {
     _financialRiskCache = null;
+    _digitalRiskCache = null;
+    _healthRiskCache = null;
+    _careerRiskCache = null;
+    _personalSafetyRiskCache = null;
     super.notifyListeners();
   }
 
+  /// Flat averages (0–1) for cross-category coupling—no engine self-loop.
+  AllCategoryPeerNorms get _peerNorms => AllCategoryPeerNorms(
+        financialNorm: _avgNorm(financialFactorLevels),
+        digitalNorm: _avgNorm(digitalFactorLevels),
+        healthNorm: _avgNorm(healthFactorLevels),
+        careerNorm: _avgNorm(careerFactorLevels),
+        safetyNorm: _avgNorm(personalSafetyFactorLevels),
+      );
+
   FinancialRiskResult get financialRiskResult {
+    final p = _peerNorms;
     _financialRiskCache ??= _financialEngine.evaluate(
       FinancialRiskInputs(
         factorLevels: financialFactorLevels,
         cross: CategoryCrossSignals(
-          healthNorm: insuranceNorm,
-          careerNorm: climateNorm,
-          safetyNorm: crimeNorm,
-          digitalNorm: digitalNorm,
+          healthNorm: p.healthNorm,
+          careerNorm: p.careerNorm,
+          safetyNorm: p.safetyNorm,
+          digitalNorm: p.digitalNorm,
         ),
       ),
       _financialAdaptive,
@@ -67,115 +129,130 @@ class RiskInputsController extends ChangeNotifier {
     return _financialRiskCache!;
   }
 
+  DigitalPrivacyRiskResult get digitalRiskResult {
+    final p = _peerNorms;
+    _digitalRiskCache ??= _digitalEngine.evaluate(
+      DigitalPrivacyRiskInputs(
+        factorLevels: digitalFactorLevels,
+        cross: DigitalPeerCrossSignals(
+          financialNorm: p.financialNorm,
+          healthNorm: p.healthNorm,
+          careerNorm: p.careerNorm,
+          safetyNorm: p.safetyNorm,
+        ),
+      ),
+      _digitalAdaptive,
+    );
+    return _digitalRiskCache!;
+  }
+
+  HealthRiskResult get healthRiskResult {
+    _healthRiskCache ??= _healthEngine.evaluate(
+      HealthRiskInputs(
+        factorLevels: healthFactorLevels,
+        cross: _peerNorms,
+      ),
+      _healthAdaptive,
+    );
+    return _healthRiskCache!;
+  }
+
+  CareerRiskResult get careerRiskResult {
+    _careerRiskCache ??= _careerEngine.evaluate(
+      CareerRiskInputs(
+        factorLevels: careerFactorLevels,
+        cross: _peerNorms,
+      ),
+      _careerAdaptive,
+    );
+    return _careerRiskCache!;
+  }
+
+  PersonalSafetyRiskResult get personalSafetyRiskResult {
+    _personalSafetyRiskCache ??= _personalSafetyEngine.evaluate(
+      PersonalSafetyRiskInputs(
+        factorLevels: personalSafetyFactorLevels,
+        cross: _peerNorms,
+      ),
+      _personalSafetyAdaptive,
+    );
+    return _personalSafetyRiskCache!;
+  }
+
   double _avgNorm(List<int> levels) {
     if (levels.isEmpty) return 0;
     final sum = levels.reduce((a, b) => a + b).toDouble();
-    return sum / (levels.length * 4.0);
+    return sum / (levels.length * RiskLevelScale.max);
   }
 
-  /// Latent stress \[0,1\] from the financial risk engine (not a flat average).
+  /// Latent stress \[0,1\] from the financial risk engine.
   double get financialNorm => financialRiskResult.pointNorm;
 
-  double get insuranceNorm => _avgNorm([
-        insuranceCoverageAdequacy,
-        insuranceDeductibleSensitivity,
-        insuranceLiabilityCoverage,
-        insuranceAssetCoverage,
-      ]);
-
-  double get crimeNorm => _avgNorm([
-        crimeIncidentFrequency,
-        crimePropertyCrime,
-        crimeViolentCrime,
-      ]);
-
-  double get climateNorm => _avgNorm([
-        climateHeat,
-        climateFlood,
-        climateWildfire,
-        climateStorm,
-        climateResilience,
-      ]);
-
-  double get digitalNorm => _avgNorm([
-        digitalPasswordHygiene,
-        digitalPhishingExposure,
-        digitalBreachExposure,
-        digitalDeviceSecurity,
-        digitalOversharing,
-      ]);
+  /// Latent stress \[0,1\] from the digital / privacy risk engine.
+  double get digitalNorm => digitalRiskResult.pointNorm;
 
   double get overallRiskScore {
-    final normalized =
-        (insuranceNorm + climateNorm + financialNorm + crimeNorm + digitalNorm) /
-            5.0;
+    final normalized = (healthRiskResult.pointNorm +
+            careerRiskResult.pointNorm +
+            financialRiskResult.pointNorm +
+            personalSafetyRiskResult.pointNorm +
+            digitalRiskResult.pointNorm) /
+        5.0;
     return RiskScore.fromNorm(normalized);
   }
 
-  double get healthRiskScore => RiskScore.fromNorm(insuranceNorm);
-  double get careerRiskScore => RiskScore.fromNorm(climateNorm);
+  double get healthRiskScore => healthRiskResult.pointScore;
+  double get careerRiskScore => careerRiskResult.pointScore;
   double get financialRiskScore => financialRiskResult.pointScore;
+  double get personalSafetyRiskScore => personalSafetyRiskResult.pointScore;
+  double get digitalPrivacyRiskScore => digitalRiskResult.pointScore;
 
-  /// Bar visualization: engine-derived share of each financial subcategory.
   List<double> get financialSubcategoryShares =>
       financialRiskResult.subcategoryShare;
 
-  /// Per–sub-category scores on 0–1000 (for segment coloring).
   List<double> get financialSubcategoryScores =>
       financialRiskResult.subcategoryScores;
-  double get personalSafetyRiskScore => RiskScore.fromNorm(crimeNorm);
-  double get digitalPrivacyRiskScore => RiskScore.fromNorm(digitalNorm);
+
+  List<double> get digitalSubcategoryShares =>
+      digitalRiskResult.subcategoryShare;
+
+  List<double> get digitalSubcategoryScores =>
+      digitalRiskResult.subcategoryScores;
+
+  List<double> get healthSubcategoryShares => healthRiskResult.subcategoryShare;
+
+  List<double> get healthSubcategoryScores =>
+      healthRiskResult.subcategoryScores;
+
+  List<double> get careerSubcategoryShares => careerRiskResult.subcategoryShare;
+
+  List<double> get careerSubcategoryScores =>
+      careerRiskResult.subcategoryScores;
+
+  List<double> get personalSafetySubcategoryShares =>
+      personalSafetyRiskResult.subcategoryShare;
+
+  List<double> get personalSafetySubcategoryScores =>
+      personalSafetyRiskResult.subcategoryScores;
 
   List<DriverFactor> get topDrivers {
-    const healthLabels = [
-      'Chronic & acute health load',
-      'Healthcare cost sensitivity',
-      'Preventive care gaps',
-      'Coverage & access adequacy',
-    ];
-    const careerLabels = [
-      'Role & job security',
-      'Income / bonus volatility',
-      'Skills & training gap',
-      'Workload & burnout',
-      'Industry & market headwinds',
-    ];
     final financialLabels = kFinancialAllFactorLabels;
-    const safetyLabels = [
-      'Neighborhood & local incidents',
-      'Property / theft exposure',
-      'Personal violence exposure',
-    ];
-    const digitalLabels = [
-      'Password & MFA hygiene',
-      'Phishing & scams exposure',
-      'Data breach & account reuse',
-      'Device & network security',
-      'Oversharing & trace footprint',
-    ];
+    final digitalLabels = kDigitalPrivacyAllFactorLabels;
+    final healthLabels = kHealthAllFactorLabels;
+    final careerLabels = kCareerAllFactorLabels;
+    final safetyLabels = kPersonalSafetyAllFactorLabels;
 
     final factors = <DriverFactor>[
       for (int i = 0; i < healthLabels.length; i++)
         DriverFactor(
           label: healthLabels[i],
-          level: [
-            insuranceCoverageAdequacy,
-            insuranceDeductibleSensitivity,
-            insuranceLiabilityCoverage,
-            insuranceAssetCoverage,
-          ][i],
+          level: healthFactorLevels[i],
           category: RiskCategory.health,
         ),
       for (int i = 0; i < careerLabels.length; i++)
         DriverFactor(
           label: careerLabels[i],
-          level: [
-            climateHeat,
-            climateFlood,
-            climateWildfire,
-            climateStorm,
-            climateResilience,
-          ][i],
+          level: careerFactorLevels[i],
           category: RiskCategory.career,
         ),
       for (int i = 0; i < financialLabels.length; i++)
@@ -187,23 +264,13 @@ class RiskInputsController extends ChangeNotifier {
       for (int i = 0; i < safetyLabels.length; i++)
         DriverFactor(
           label: safetyLabels[i],
-          level: [
-            crimeIncidentFrequency,
-            crimePropertyCrime,
-            crimeViolentCrime,
-          ][i],
+          level: personalSafetyFactorLevels[i],
           category: RiskCategory.personalSafety,
         ),
       for (int i = 0; i < digitalLabels.length; i++)
         DriverFactor(
           label: digitalLabels[i],
-          level: [
-            digitalPasswordHygiene,
-            digitalPhishingExposure,
-            digitalBreachExposure,
-            digitalDeviceSecurity,
-            digitalOversharing,
-          ][i],
+          level: digitalFactorLevels[i],
           category: RiskCategory.digitalPrivacy,
         ),
     ];
@@ -214,86 +281,31 @@ class RiskInputsController extends ChangeNotifier {
 
   void setFinancialFactor(int index, int level) {
     if (index < 0 || index >= financialFactorLevels.length) return;
-    financialFactorLevels[index] = level.clamp(0, 4);
+    financialFactorLevels[index] = RiskLevelScale.clamp(level);
     notifyListeners();
   }
 
-  void setInsuranceFactor(int index, int level) {
-    final v = level.clamp(0, 4);
-    switch (index) {
-      case 0:
-        insuranceCoverageAdequacy = v;
-        break;
-      case 1:
-        insuranceDeductibleSensitivity = v;
-        break;
-      case 2:
-        insuranceLiabilityCoverage = v;
-        break;
-      case 3:
-        insuranceAssetCoverage = v;
-        break;
-    }
+  void setHealthFactor(int index, int level) {
+    if (index < 0 || index >= healthFactorLevels.length) return;
+    healthFactorLevels[index] = RiskLevelScale.clamp(level);
     notifyListeners();
   }
 
-  void setCrimeFactor(int index, int level) {
-    final v = level.clamp(0, 4);
-    switch (index) {
-      case 0:
-        crimeIncidentFrequency = v;
-        break;
-      case 1:
-        crimePropertyCrime = v;
-        break;
-      case 2:
-        crimeViolentCrime = v;
-        break;
-    }
+  void setCareerFactor(int index, int level) {
+    if (index < 0 || index >= careerFactorLevels.length) return;
+    careerFactorLevels[index] = RiskLevelScale.clamp(level);
     notifyListeners();
   }
 
-  void setClimateFactor(int index, int level) {
-    final v = level.clamp(0, 4);
-    switch (index) {
-      case 0:
-        climateHeat = v;
-        break;
-      case 1:
-        climateFlood = v;
-        break;
-      case 2:
-        climateWildfire = v;
-        break;
-      case 3:
-        climateStorm = v;
-        break;
-      case 4:
-        climateResilience = v;
-        break;
-    }
+  void setPersonalSafetyFactor(int index, int level) {
+    if (index < 0 || index >= personalSafetyFactorLevels.length) return;
+    personalSafetyFactorLevels[index] = RiskLevelScale.clamp(level);
     notifyListeners();
   }
 
   void setDigitalFactor(int index, int level) {
-    final v = level.clamp(0, 4);
-    switch (index) {
-      case 0:
-        digitalPasswordHygiene = v;
-        break;
-      case 1:
-        digitalPhishingExposure = v;
-        break;
-      case 2:
-        digitalBreachExposure = v;
-        break;
-      case 3:
-        digitalDeviceSecurity = v;
-        break;
-      case 4:
-        digitalOversharing = v;
-        break;
-    }
+    if (index < 0 || index >= digitalFactorLevels.length) return;
+    digitalFactorLevels[index] = RiskLevelScale.clamp(level);
     notifyListeners();
   }
 
