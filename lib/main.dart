@@ -4,6 +4,8 @@ import 'pages/dashboard_page.dart';
 import 'pages/widgets/risk_level_slider_field.dart';
 import 'utils/risk_level_scale.dart';
 
+import 'services/ollama_service.dart';
+
 void main() {
   runApp(const RiskDashboardApp());
 }

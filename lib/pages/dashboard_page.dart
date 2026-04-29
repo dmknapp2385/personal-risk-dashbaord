@@ -11,6 +11,8 @@ import 'tabs/health_tab.dart';
 import 'tabs/overall_tab.dart';
 import 'tabs/personal_safety_tab.dart';
 
+import '../services/ollama_service.dart';
+
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
 
@@ -136,37 +138,76 @@ class _DashboardPageState extends State<DashboardPage> {
                     ),
                     const SizedBox(height: 14),
                     Expanded(
-                      child: OverallTab(
-                        overallScore: _c.overallRiskScore,
-                        categoryScores: [
-                          HomeCategoryScore(
-                            label: 'Health',
-                            score: _c.healthRiskScore,
-                            category: RiskCategory.health,
+                      child: Stack(
+                        children: [
+                          OverallTab(
+                            overallScore: _c.overallRiskScore,
+                            categoryScores: [
+                              HomeCategoryScore(
+                                label: 'Health',
+                                score: _c.healthRiskScore,
+                                category: RiskCategory.health,
+                              ),
+                              HomeCategoryScore(
+                                label: 'Career',
+                                score: _c.careerRiskScore,
+                                category: RiskCategory.career,
+                              ),
+                              HomeCategoryScore(
+                                label: 'Financial',
+                                score: _c.financialRiskScore,
+                                category: RiskCategory.financial,
+                              ),
+                              HomeCategoryScore(
+                                label: 'Personal Safety',
+                                score: _c.personalSafetyRiskScore,
+                                category: RiskCategory.personalSafety,
+                              ),
+                              HomeCategoryScore(
+                                label: 'Digital / Privacy',
+                                score: _c.digitalPrivacyRiskScore,
+                                category: RiskCategory.digitalPrivacy,
+                              ),
+                            ],
+                            topDrivers: _c.topDrivers,
+                            onOpenCategory: (c) => _openCategoryPage(context, c),
                           ),
-                          HomeCategoryScore(
-                            label: 'Career',
-                            score: _c.careerRiskScore,
-                            category: RiskCategory.career,
-                          ),
-                          HomeCategoryScore(
-                            label: 'Financial',
-                            score: _c.financialRiskScore,
-                            category: RiskCategory.financial,
-                          ),
-                          HomeCategoryScore(
-                            label: 'Personal Safety',
-                            score: _c.personalSafetyRiskScore,
-                            category: RiskCategory.personalSafety,
-                          ),
-                          HomeCategoryScore(
-                            label: 'Digital / Privacy',
-                            score: _c.digitalPrivacyRiskScore,
-                            category: RiskCategory.digitalPrivacy,
+
+                          Positioned(
+                            right: 16,
+                            bottom: 16,
+                            child: FloatingActionButton.extended(
+                              onPressed: () async {
+                                final reply = await OllamaService().ask(
+                                  'You are an assistant for a personal risk dashboard. '
+                                  'Give a brief, practical summary using only these scores. '
+                                  'Do not say you lack information. '
+                                  'This is an app demo, not professional advice. '
+                                  'Overall risk score: ${_c.overallRiskScore}/1000. '
+                                  'Health: ${_c.healthRiskScore}/1000. '
+                                  'Career: ${_c.careerRiskScore}/1000. '
+                                  'Financial: ${_c.financialRiskScore}/1000. '
+                                  'Personal Safety: ${_c.personalSafetyRiskScore}/1000. '
+                                  'Digital Privacy: ${_c.digitalPrivacyRiskScore}/1000. '
+                                  'Top drivers: ${_c.topDrivers.map((d) => d.label).join(", ")}. '
+                                  'Return 3 short bullet points: summary, biggest concern, next step.',
+                                );
+
+                                if (!context.mounted) return;
+
+                                showDialog(
+                                  context: context,
+                                  builder: (_) => AlertDialog(
+                                    title: const Text('AI Insight'),
+                                    content: Text(reply),
+                                  ),
+                                );
+                              },
+                              icon: const Icon(Icons.auto_awesome),
+                              label: const Text('AI Insight'),
+                            ),
                           ),
                         ],
-                        topDrivers: _c.topDrivers,
-                        onOpenCategory: (c) => _openCategoryPage(context, c),
                       ),
                     ),
                   ],
