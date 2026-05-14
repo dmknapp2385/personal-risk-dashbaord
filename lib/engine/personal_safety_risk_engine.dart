@@ -31,13 +31,8 @@ class PersonalSafetyRiskEngine {
     PersonalSafetyAdaptiveState adaptive, {
     bool updateAdaptive = true,
   }) {
-    final levels = List<int>.from(inputs.factorLevels);
+    final levels = List<double>.from(inputs.factorLevels);
     final core = _evaluateCore(levels, inputs, adaptive);
-
-    PersonalSafetyMonteCarloSummary? mc;
-    if (inputs.monteCarloSamples > 0) {
-      mc = _runMonteCarlo(levels, inputs, adaptive);
-    }
 
     if (updateAdaptive) {
       _onlineWeightUpdate(adaptive, core.subStressRaw, levels);
@@ -46,22 +41,15 @@ class PersonalSafetyRiskEngine {
     return PersonalSafetyRiskResult(
       pointNorm: core.norm,
       pointScore: RiskScore.fromNorm(core.norm),
-      subcategoryStress: List<double>.from(core.subStressRaw),
       subcategoryShare: List<double>.from(core.subShare),
       subcategoryScores: core.subStressRaw
           .map((u) => RiskScore.fromNorm(u.clamp(0.0, 1.0)))
           .toList(),
-      collapseTerm: core.collapseTerm,
-      correlationMultiplier: core.correlationMultiplier,
-      horizonFactor: core.horizonFactor,
-      maskingPenalty: core.maskingPenalty,
-      regimeTags: core.regimeTags,
-      monteCarlo: mc,
     );
   }
 
   _CoreOutcome _evaluateCore(
-    List<int> levels,
+    List<double> levels,
     PersonalSafetyRiskInputs inputs,
     PersonalSafetyAdaptiveState adaptive,
   ) {
@@ -92,17 +80,11 @@ class PersonalSafetyRiskEngine {
     uAgg = (uAgg + maskPen).clamp(0.0, 1.0);
 
     final share = _subShares(subStress, adaptive.subWeights);
-    final tags = _regimeTags(subStress, collapse, uAgg, maskPen);
 
     return _CoreOutcome(
       norm: uAgg,
       subStressRaw: subStress,
       subShare: share,
-      collapseTerm: collapse,
-      correlationMultiplier: corr,
-      horizonFactor: hFactor,
-      maskingPenalty: maskPen,
-      regimeTags: tags,
     );
   }
 
@@ -191,38 +173,10 @@ class PersonalSafetyRiskEngine {
     return masses.map((m) => m / sum).toList();
   }
 
-  List<String> _regimeTags(
-    List<double> sub,
-    double collapse,
-    double agg,
-    double maskPen,
-  ) {
-    final tags = <String>[];
-    if (sub.length >= 2 && sub[0] > 0.55 && sub[1] > 0.55) {
-      tags.add('Local–property risk couplet');
-    }
-    if (collapse > 0.22) {
-      tags.add('Violence-exposure coupling (tail dependent)');
-    }
-    if (sub.length > 2 && sub[2] > 0.6) {
-      tags.add('Personal violence amplification');
-    }
-    if (maskPen > 0) {
-      tags.add('Low dispersion penalty (anti-masking)');
-    }
-    if (agg > 0.72) {
-      tags.add('Elevated composite safety stress');
-    }
-    if (tags.isEmpty) {
-      tags.add('Baseline safety profile');
-    }
-    return tags;
-  }
-
   void _onlineWeightUpdate(
     PersonalSafetyAdaptiveState adaptive,
     List<double> subStress,
-    List<int> levels,
+    List<double> levels,
   ) {
     final idealSub = subStress.map((s) => s + 0.14).toList();
     _normalizeIdeal(idealSub);
@@ -268,52 +222,6 @@ class PersonalSafetyRiskEngine {
     }
   }
 
-  PersonalSafetyMonteCarloSummary _runMonteCarlo(
-    List<int> baseLevels,
-    PersonalSafetyRiskInputs inputs,
-    PersonalSafetyAdaptiveState adaptive,
-  ) {
-    final rnd = math.Random(inputs.randomSeed);
-    final scores = <double>[];
-    final n = inputs.monteCarloSamples;
-    for (var k = 0; k < n; k++) {
-      final perturbed = _perturbLevels(baseLevels, rnd);
-      final c = _evaluateCore(perturbed, inputs, adaptive);
-      scores.add(RiskScore.fromNorm(c.norm));
-    }
-    scores.sort();
-    double q(List<double> a, double p) {
-      if (a.isEmpty) return 0;
-      final idx = (p * (a.length - 1)).round().clamp(0, a.length - 1);
-      return a[idx];
-    }
-
-    final mean = scores.fold<double>(0, (a, b) => a + b) / scores.length;
-    return PersonalSafetyMonteCarloSummary(
-      mean: mean,
-      p10: q(scores, 0.10),
-      p50: q(scores, 0.50),
-      p90: q(scores, 0.90),
-      samples: n,
-    );
-  }
-
-  List<int> _perturbLevels(List<int> base, math.Random rnd) {
-    return base.map((L) {
-      final u = RiskLevelScale.toNorm(L);
-      final sigma = 0.055 + 0.11 * u;
-      var up = u + _gaussian(rnd) * sigma;
-      up = up.clamp(0.0, 1.0);
-      return RiskLevelScale.clamp((up * RiskLevelScale.max).round());
-    }).toList();
-  }
-
-  double _gaussian(math.Random rnd) {
-    final u1 = rnd.nextDouble();
-    final u2 = rnd.nextDouble();
-    return math.sqrt(-2 * math.log(u1.clamp(1e-12, 1.0))) *
-        math.cos(2 * math.pi * u2);
-  }
 }
 
 class _CoreOutcome {
@@ -321,19 +229,9 @@ class _CoreOutcome {
     required this.norm,
     required this.subStressRaw,
     required this.subShare,
-    required this.collapseTerm,
-    required this.correlationMultiplier,
-    required this.horizonFactor,
-    required this.maskingPenalty,
-    required this.regimeTags,
   });
 
   final double norm;
   final List<double> subStressRaw;
   final List<double> subShare;
-  final double collapseTerm;
-  final double correlationMultiplier;
-  final double horizonFactor;
-  final double maskingPenalty;
-  final List<String> regimeTags;
 }

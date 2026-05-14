@@ -21,9 +21,6 @@ class _LocationRowState extends State<LocationRow> {
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.value);
-    _controller.addListener(() {
-      widget.onChanged(_controller.text);
-    });
   }
 
   @override
@@ -54,6 +51,7 @@ class _LocationRowState extends State<LocationRow> {
         const SizedBox(height: 6),
         TextField(
           controller: _controller,
+          onChanged: widget.onChanged,
           decoration: const InputDecoration(
             hintText: 'Example: 94110, San Francisco, CA',
             border: OutlineInputBorder(),

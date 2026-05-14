@@ -14,8 +14,8 @@ class DigitalPrivacyTab extends StatelessWidget {
     required this.digitalDetail,
   });
 
-  final List<int> digitalLevels;
-  final void Function(int index, int level) onDigitalFactorChanged;
+  final List<double> digitalLevels;
+  final void Function(int index, double level) onDigitalFactorChanged;
   final DigitalPrivacyRiskResult digitalDetail;
 
   static const _scaleLabels = ['VL', 'L', 'M', 'H', 'VH'];

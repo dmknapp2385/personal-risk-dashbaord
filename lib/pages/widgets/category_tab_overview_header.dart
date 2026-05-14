@@ -8,9 +8,9 @@ import 'category_overview_score_bar.dart';
 
 /// Builds overview bar slices from flat factor levels and engine per-subcategory
 /// [engineSubShares] / [subScores]. Subcategories where **every** factor is 0 are
-/// omitted (same rule as [categorySlicesFromFactors]); remaining shares renormalize to 1.
+/// omitted; remaining shares renormalize to 1.
 List<CategoryOverviewBarSlice> engineBarSlicesOmittingAllZeroSubcategories({
-  required List<int> factorLevelsFlat,
+  required List<double> factorLevelsFlat,
   required List<double> engineSubShares,
   required List<double> subScores,
   required List<String> sectionTitles,
@@ -21,7 +21,7 @@ List<CategoryOverviewBarSlice> engineBarSlicesOmittingAllZeroSubcategories({
   assert(subScores.length == sectionTitles.length);
 
   var offset = 0;
-  final active = <({int index, List<int> seg})>[];
+  final active = <({int index, List<double> seg})>[];
   for (var s = 0; s < sectionTitles.length; s++) {
     final labels = sectionFactorLabels[s];
     final n = labels.length;
@@ -29,7 +29,7 @@ List<CategoryOverviewBarSlice> engineBarSlicesOmittingAllZeroSubcategories({
     offset += n;
     final contributes = seg.any((l) => RiskLevelScale.clamp(l) > 0);
     if (contributes) {
-      active.add((index: s, seg: List<int>.from(seg)));
+      active.add((index: s, seg: List<double>.from(seg)));
     }
   }
   assert(
@@ -221,39 +221,4 @@ class CategoryOverviewLegendChip extends StatelessWidget {
       ],
     );
   }
-}
-
-/// Segments for Health / Career / Personal Safety overview bars.
-/// Factors at **0%** do not appear on the bar or legend (no contribution).
-/// Remaining factors split the bar **equally**.
-List<CategoryOverviewBarSlice> categorySlicesFromFactors(
-  List<String> labels,
-  List<int> levels,
-) {
-  final n = labels.length;
-  if (n == 0) return [];
-  assert(
-    levels.length == n,
-    'levels.length (${levels.length}) != labels.length ($n)',
-  );
-  final active = <int>[];
-  for (var i = 0; i < n; i++) {
-    if (RiskLevelScale.clamp(levels[i]) > 0) {
-      active.add(i);
-    }
-  }
-  if (active.isEmpty) return [];
-  final k = active.length;
-  final share = 1.0 / k;
-  return [
-    for (final i in active)
-      CategoryOverviewBarSlice(
-        title: labels[i],
-        share: share,
-        riskScore:
-            RiskScore.fromNorm(RiskLevelScale.toNorm(RiskLevelScale.clamp(levels[i]))),
-        factorLabels: [labels[i]],
-        factorLevels: [RiskLevelScale.clamp(levels[i])],
-      ),
-  ];
 }

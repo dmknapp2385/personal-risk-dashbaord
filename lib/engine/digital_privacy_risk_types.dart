@@ -23,61 +23,28 @@ class DigitalPrivacyRiskInputs {
     required this.factorLevels,
     required this.cross,
     this.horizonMonths = 12,
-    this.monteCarloSamples = 384,
-    this.randomSeed = 0xD16D1A1,
   });
 
-  /// Flat list aligned with [kDigitalPrivacySubcategoryDefs] factor order (each 0–100).
-  final List<int> factorLevels;
+  /// Flat list aligned with [kDigitalPrivacySubcategoryDefs] factor order
+  /// (each 0.00–100.00).
+  final List<double> factorLevels;
   final DigitalPeerCrossSignals cross;
 
   final int horizonMonths;
-  final int monteCarloSamples;
-  final int randomSeed;
-}
-
-class DigitalMonteCarloSummary {
-  const DigitalMonteCarloSummary({
-    required this.mean,
-    required this.p10,
-    required this.p50,
-    required this.p90,
-    required this.samples,
-  });
-
-  final double mean;
-  final double p10;
-  final double p50;
-  final double p90;
-  final int samples;
 }
 
 class DigitalPrivacyRiskResult {
   const DigitalPrivacyRiskResult({
     required this.pointNorm,
     required this.pointScore,
-    required this.subcategoryStress,
     required this.subcategoryShare,
     required this.subcategoryScores,
-    required this.collapseTerm,
-    required this.correlationMultiplier,
-    required this.horizonFactor,
-    required this.maskingPenalty,
-    required this.regimeTags,
-    this.monteCarlo,
   });
 
   final double pointNorm;
   final double pointScore;
-  final List<double> subcategoryStress;
   final List<double> subcategoryShare;
   final List<double> subcategoryScores;
-  final double collapseTerm;
-  final double correlationMultiplier;
-  final double horizonFactor;
-  final double maskingPenalty;
-  final List<String> regimeTags;
-  final DigitalMonteCarloSummary? monteCarlo;
 }
 
 class DigitalPrivacyAdaptiveState {

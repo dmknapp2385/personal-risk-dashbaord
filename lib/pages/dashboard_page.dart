@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../controllers/risk_inputs_controller.dart';
 import '../models/home_category_score.dart';
 import '../models/risk_category.dart';
+import '../services/dashboard_insight_service.dart';
 import 'risk_category_detail_page.dart';
 import 'tabs/career_tab.dart';
 import 'tabs/digital_privacy_tab.dart';
@@ -10,8 +11,8 @@ import 'tabs/financial_tab.dart';
 import 'tabs/health_tab.dart';
 import 'tabs/overall_tab.dart';
 import 'tabs/personal_safety_tab.dart';
-
-import '../services/ollama_service.dart';
+import 'widgets/ai_insight_dialog.dart';
+import 'widgets/theme_toggle_button.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -22,11 +23,37 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   final RiskInputsController _c = RiskInputsController();
+  final DashboardInsightService _insightService = DashboardInsightService();
+
+  bool _loadingInsight = false;
 
   @override
   void dispose() {
     _c.dispose();
     super.dispose();
+  }
+
+  Future<void> _runInsight() async {
+    if (_loadingInsight) return;
+    setState(() => _loadingInsight = true);
+    try {
+      final insight = await _insightService.generate(_c);
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (_) => AiInsightDialog(insight: insight),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (_) => AiInsightErrorDialog(error: e.toString()),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _loadingInsight = false);
+      }
+    }
   }
 
   void _openCategoryPage(BuildContext context, RiskCategory category) {
@@ -41,7 +68,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   return RiskCategoryDetailPage(
                     title: category.shortLabel,
                     body: HealthTab(
-                      healthLevels: List<int>.from(_c.healthFactorLevels),
+                      healthLevels: List<double>.from(_c.healthFactorLevels),
                       onHealthFactorChanged: _c.setHealthFactor,
                       healthDetail: _c.healthRiskResult,
                     ),
@@ -50,7 +77,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   return RiskCategoryDetailPage(
                     title: category.shortLabel,
                     body: CareerTab(
-                      careerLevels: List<int>.from(_c.careerFactorLevels),
+                      careerLevels: List<double>.from(_c.careerFactorLevels),
                       onCareerFactorChanged: _c.setCareerFactor,
                       careerDetail: _c.careerRiskResult,
                     ),
@@ -59,7 +86,8 @@ class _DashboardPageState extends State<DashboardPage> {
                   return RiskCategoryDetailPage(
                     title: category.shortLabel,
                     body: FinancialTab(
-                      financialLevels: List<int>.from(_c.financialFactorLevels),
+                      financialLevels:
+                          List<double>.from(_c.financialFactorLevels),
                       onFinancialFactorChanged: _c.setFinancialFactor,
                       financialDetail: _c.financialRiskResult,
                     ),
@@ -70,7 +98,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     body: PersonalSafetyTab(
                       locationInput: _c.crimeLocationInput,
                       safetyLevels:
-                          List<int>.from(_c.personalSafetyFactorLevels),
+                          List<double>.from(_c.personalSafetyFactorLevels),
                       onLocationChanged: _c.setCrimeLocationInput,
                       onSafetyFactorChanged: _c.setPersonalSafetyFactor,
                       safetyDetail: _c.personalSafetyRiskResult,
@@ -80,7 +108,8 @@ class _DashboardPageState extends State<DashboardPage> {
                   return RiskCategoryDetailPage(
                     title: category.shortLabel,
                     body: DigitalPrivacyTab(
-                      digitalLevels: List<int>.from(_c.digitalFactorLevels),
+                      digitalLevels:
+                          List<double>.from(_c.digitalFactorLevels),
                       onDigitalFactorChanged: _c.setDigitalFactor,
                       digitalDetail: _c.digitalRiskResult,
                     ),
@@ -104,8 +133,13 @@ class _DashboardPageState extends State<DashboardPage> {
           backgroundColor: cs.surface,
           appBar: AppBar(
             title: const Text('Personalized Risk Dashboard'),
+            actions: const [
+              ThemeToggleButton(),
+              SizedBox(width: 4),
+            ],
           ),
-          body: Align(
+          body: SelectionArea(
+            child: Align(
             alignment: Alignment.topCenter,
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 1100),
@@ -177,34 +211,19 @@ class _DashboardPageState extends State<DashboardPage> {
                             right: 16,
                             bottom: 16,
                             child: FloatingActionButton.extended(
-                              onPressed: () async {
-                                final reply = await OllamaService().ask(
-                                  'You are an assistant for a personal risk dashboard. '
-                                  'Give a brief, practical summary using only these scores. '
-                                  'Do not say you lack information. '
-                                  'This is an app demo, not professional advice. '
-                                  'Overall risk score: ${_c.overallRiskScore}/1000. '
-                                  'Health: ${_c.healthRiskScore}/1000. '
-                                  'Career: ${_c.careerRiskScore}/1000. '
-                                  'Financial: ${_c.financialRiskScore}/1000. '
-                                  'Personal Safety: ${_c.personalSafetyRiskScore}/1000. '
-                                  'Digital Privacy: ${_c.digitalPrivacyRiskScore}/1000. '
-                                  'Top drivers: ${_c.topDrivers.map((d) => d.label).join(", ")}. '
-                                  'Return 3 short bullet points: summary, biggest concern, next step.',
-                                );
-
-                                if (!context.mounted) return;
-
-                                showDialog(
-                                  context: context,
-                                  builder: (_) => AlertDialog(
-                                    title: const Text('AI Insight'),
-                                    content: Text(reply),
-                                  ),
-                                );
-                              },
-                              icon: const Icon(Icons.auto_awesome),
-                              label: const Text('AI Insight'),
+                              onPressed: _loadingInsight ? null : _runInsight,
+                              icon: _loadingInsight
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.auto_awesome),
+                              label: Text(
+                                _loadingInsight ? 'Thinking…' : 'AI Insight',
+                              ),
                             ),
                           ),
                         ],
@@ -214,6 +233,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
               ),
             ),
+          ),
           ),
         );
       },

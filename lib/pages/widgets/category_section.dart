@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../utils/risk_level_scale.dart';
 import '../../utils/risk_score.dart';
+import 'ai_rationale_badge.dart';
 import 'risk_level_slider_field.dart';
 import 'score_info_icon.dart';
 
@@ -14,26 +15,27 @@ class CategorySection extends StatelessWidget {
     required this.levels,
     required this.onLevelChanged,
     required this.scaleLabels,
-    this.showFactorImpactSection = true,
     this.titleHelp,
     this.factorHelps,
+    this.factorRationales,
   });
 
   final String title;
   final IconData icon;
   final List<String> factorLabels;
-  final List<int> levels;
-  final void Function(int index, int newLevel) onLevelChanged;
+  final List<double> levels;
+  final void Function(int index, double newLevel) onLevelChanged;
   final List<String> scaleLabels;
-
-  /// When false, hides “Impact by sub-category”, mini bars, and summary line.
-  final bool showFactorImpactSection;
 
   /// Tooltip/dialog copy for what this subcategory (section) measures.
   final String? titleHelp;
 
   /// One entry per factor; use null where no info icon is needed.
   final List<String?>? factorHelps;
+
+  /// Optional AI-generated rationale per factor. Length must match
+  /// [factorLabels]. Null entries hide the AI badge for that factor.
+  final List<String?>? factorRationales;
 
   static const Color _lowColor = Color(0xFF16A34A); // green
   static const Color _highColor = Color(0xFFDC2626); // red
@@ -42,8 +44,9 @@ class CategorySection extends StatelessWidget {
       levels.isEmpty ? 0 : _avgLevel / RiskLevelScale.max;
 
   double get _avgLevel {
-    final sum = levels.isEmpty ? 0 : levels.reduce((a, b) => a + b);
-    return sum.toDouble() / (levels.isEmpty ? 1 : levels.length);
+    if (levels.isEmpty) return 0;
+    final sum = levels.reduce((a, b) => a + b);
+    return sum / levels.length;
   }
 
   Color get _riskColor => Color.lerp(_lowColor, _highColor, _t)!;
@@ -76,10 +79,16 @@ class CategorySection extends StatelessWidget {
 
     final barColor = _riskColor.withOpacity(0.28);
     final outlineColor = _riskColor.withOpacity(0.55);
-    final levelsSum = levels.isEmpty ? 0 : levels.reduce((a, b) => a + b);
+    final double levelsSum =
+        levels.isEmpty ? 0.0 : levels.reduce((a, b) => a + b);
     assert(
       factorHelps == null || factorHelps!.length == factorLabels.length,
       'factorHelps length must match factorLabels',
+    );
+    assert(
+      factorRationales == null ||
+          factorRationales!.length == factorLabels.length,
+      'factorRationales length must match factorLabels',
     );
 
     return Container(
@@ -150,40 +159,39 @@ class CategorySection extends StatelessWidget {
                   onLevelChanged(factorIndex, newLevel),
               scaleLabels: scaleLabels,
               questionHelp: factorHelps?[i],
+              aiRationale: factorRationales?[i],
             );
           }),
-          if (showFactorImpactSection) ...[
-            const SizedBox(height: 12),
-            Text(
-              'Impact by sub-category',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: cs.onSurfaceVariant,
-              ),
+          const SizedBox(height: 12),
+          Text(
+            'Impact by sub-category',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: cs.onSurfaceVariant,
             ),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 12,
-              runSpacing: 10,
-              children: [
-                for (int i = 0; i < factorLabels.length; i++)
-                  _MiniImpactBar(
-                    label: factorLabels[i],
-                    level: levels[i],
-                    scaleLabels: scaleLabels,
-                    contributionPct: levelsSum == 0
-                        ? 0
-                        : (levels[i] / levelsSum * 100).round(),
-                  ),
-              ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 12,
+            runSpacing: 10,
+            children: [
+              for (int i = 0; i < factorLabels.length; i++)
+                _MiniImpactBar(
+                  label: factorLabels[i],
+                  level: levels[i],
+                  scaleLabels: scaleLabels,
+                  contributionPct: levelsSum == 0
+                      ? 0
+                      : (levels[i] / levelsSum * 100).round(),
+                ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'Overall category impact: $_impactLabel',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: cs.onSurfaceVariant,
             ),
-            const SizedBox(height: 2),
-            Text(
-              'Overall category impact: $_impactLabel',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: cs.onSurfaceVariant,
-              ),
-            ),
-          ],
+          ),
         ],
       ),
     );
@@ -197,16 +205,24 @@ class _FactorSegmentedQuestion extends StatelessWidget {
     required this.onLevelChanged,
     required this.scaleLabels,
     this.questionHelp,
+    this.aiRationale,
   });
 
   final String question;
-  final int level;
-  final ValueChanged<int> onLevelChanged;
+  final double level;
+  final ValueChanged<double> onLevelChanged;
   final List<String> scaleLabels;
   final String? questionHelp;
+  final String? aiRationale;
 
   @override
   Widget build(BuildContext context) {
+    final slider = RiskLevelSliderField(
+      value: RiskLevelScale.clamp(level),
+      anchorLabels: scaleLabels,
+      onChanged: onLevelChanged,
+    );
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
@@ -228,14 +244,15 @@ class _FactorSegmentedQuestion extends StatelessWidget {
                   message: questionHelp!,
                   dialogTitle: question,
                 ),
+              if (aiRationale != null && aiRationale!.isNotEmpty)
+                AiRationaleBadge(
+                  rationale: aiRationale!,
+                  dialogTitle: question,
+                ),
             ],
           ),
           const SizedBox(height: 8),
-          RiskLevelSliderField(
-            value: RiskLevelScale.clamp(level),
-            anchorLabels: scaleLabels,
-            onChanged: onLevelChanged,
-          ),
+          slider,
         ],
       ),
     );
@@ -251,7 +268,7 @@ class _MiniImpactBar extends StatelessWidget {
   });
 
   final String label;
-  final int level;
+  final double level;
   final List<String> scaleLabels;
   final int contributionPct;
 
@@ -291,7 +308,7 @@ class _MiniImpactBar extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            '${RiskLevelScale.clamp(level)}% · '
+            '${RiskLevelScale.format(level)}% · '
             '${scaleLabels[RiskLevelScale.bandIndex(level)]} · '
             '$contributionPct%',
             style: theme.textTheme.bodySmall?.copyWith(

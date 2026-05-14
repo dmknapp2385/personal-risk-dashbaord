@@ -12,5 +12,5 @@ class CategoryOverviewBarSlice {
   final double share;
   final double riskScore;
   final List<String> factorLabels;
-  final List<int> factorLevels;
+  final List<double> factorLevels;
 }

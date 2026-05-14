@@ -484,7 +484,7 @@ class _SliceHoverPreview extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    '$lvl% · $tab',
+                    '${lvl.toStringAsFixed(2)}% · $tab',
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: cs.primary,
                       fontWeight: FontWeight.w700,

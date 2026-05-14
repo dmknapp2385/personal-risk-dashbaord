@@ -23,50 +23,50 @@ import '../utils/risk_score.dart';
 
 /// Holds all mock questionnaire state; notifies listeners so pushed routes stay in sync.
 class RiskInputsController extends ChangeNotifier {
-  /// One score per financial factor (0–100); see [kFinancialSubcategoryDefs].
-  List<int> financialFactorLevels = [
+  /// One score per financial factor (0.00–100.00); see [kFinancialSubcategoryDefs].
+  List<double> financialFactorLevels = [
     50, 25, 25, // liquidity
     50, 25, 25, 25, // obligations
     50, 25, 25, // asset risk
     50, 25, 25, // concentration
     50, 25, 25, // inflation
-  ];
+  ].map((e) => e.toDouble()).toList();
 
-  /// One score per health factor (0–100); see [kHealthSubcategoryDefs].
-  List<int> healthFactorLevels = [
+  /// One score per health factor (0.00–100.00); see [kHealthSubcategoryDefs].
+  List<double> healthFactorLevels = [
     50, 25, 25,
     50, 25, 25,
     50, 25, 25,
     50, 25, 25,
     50, 25, 25,
-  ];
+  ].map((e) => e.toDouble()).toList();
 
-  /// One score per career factor (0–100); see [kCareerSubcategoryDefs].
-  List<int> careerFactorLevels = [
+  /// One score per career factor (0.00–100.00); see [kCareerSubcategoryDefs].
+  List<double> careerFactorLevels = [
     50, 25, 25,
     50, 25, 25,
     50, 25, 25,
     50, 25, 25,
     50, 25, 25,
-  ];
+  ].map((e) => e.toDouble()).toList();
 
-  /// One score per personal-safety factor (0–100); see [kPersonalSafetySubcategoryDefs].
-  List<int> personalSafetyFactorLevels = [
+  /// One score per personal-safety factor (0.00–100.00); see [kPersonalSafetySubcategoryDefs].
+  List<double> personalSafetyFactorLevels = [
     50, 25, 25,
     50, 25, 25,
     50, 25, 25,
     50, 25, 25,
     50, 25, 25,
-  ];
+  ].map((e) => e.toDouble()).toList();
 
-  /// One score per digital factor (0–100); see [kDigitalPrivacySubcategoryDefs].
-  List<int> digitalFactorLevels = [
+  /// One score per digital factor (0.00–100.00); see [kDigitalPrivacySubcategoryDefs].
+  List<double> digitalFactorLevels = [
     50, 25, 25, // identity & authentication
     50, 25, 25, // phishing & social engineering
     50, 25, 25, // data exposure & account hygiene
     50, 25, 25, // devices & networks
     50, 25, 25, // privacy & footprint
-  ];
+  ].map((e) => e.toDouble()).toList();
 
   String crimeLocationInput = '';
 
@@ -179,17 +179,11 @@ class RiskInputsController extends ChangeNotifier {
     return _personalSafetyRiskCache!;
   }
 
-  double _avgNorm(List<int> levels) {
+  double _avgNorm(List<double> levels) {
     if (levels.isEmpty) return 0;
-    final sum = levels.reduce((a, b) => a + b).toDouble();
+    final sum = levels.reduce((a, b) => a + b);
     return sum / (levels.length * RiskLevelScale.max);
   }
-
-  /// Latent stress \[0,1\] from the financial risk engine.
-  double get financialNorm => financialRiskResult.pointNorm;
-
-  /// Latent stress \[0,1\] from the digital / privacy risk engine.
-  double get digitalNorm => digitalRiskResult.pointNorm;
 
   double get overallRiskScore {
     final normalized = (healthRiskResult.pointNorm +
@@ -207,30 +201,17 @@ class RiskInputsController extends ChangeNotifier {
   double get personalSafetyRiskScore => personalSafetyRiskResult.pointScore;
   double get digitalPrivacyRiskScore => digitalRiskResult.pointScore;
 
-  List<double> get financialSubcategoryShares =>
-      financialRiskResult.subcategoryShare;
-
   List<double> get financialSubcategoryScores =>
       financialRiskResult.subcategoryScores;
-
-  List<double> get digitalSubcategoryShares =>
-      digitalRiskResult.subcategoryShare;
 
   List<double> get digitalSubcategoryScores =>
       digitalRiskResult.subcategoryScores;
 
-  List<double> get healthSubcategoryShares => healthRiskResult.subcategoryShare;
-
   List<double> get healthSubcategoryScores =>
       healthRiskResult.subcategoryScores;
 
-  List<double> get careerSubcategoryShares => careerRiskResult.subcategoryShare;
-
   List<double> get careerSubcategoryScores =>
       careerRiskResult.subcategoryScores;
-
-  List<double> get personalSafetySubcategoryShares =>
-      personalSafetyRiskResult.subcategoryShare;
 
   List<double> get personalSafetySubcategoryScores =>
       personalSafetyRiskResult.subcategoryScores;
@@ -279,31 +260,31 @@ class RiskInputsController extends ChangeNotifier {
     return factors.take(6).toList();
   }
 
-  void setFinancialFactor(int index, int level) {
+  void setFinancialFactor(int index, double level) {
     if (index < 0 || index >= financialFactorLevels.length) return;
     financialFactorLevels[index] = RiskLevelScale.clamp(level);
     notifyListeners();
   }
 
-  void setHealthFactor(int index, int level) {
+  void setHealthFactor(int index, double level) {
     if (index < 0 || index >= healthFactorLevels.length) return;
     healthFactorLevels[index] = RiskLevelScale.clamp(level);
     notifyListeners();
   }
 
-  void setCareerFactor(int index, int level) {
+  void setCareerFactor(int index, double level) {
     if (index < 0 || index >= careerFactorLevels.length) return;
     careerFactorLevels[index] = RiskLevelScale.clamp(level);
     notifyListeners();
   }
 
-  void setPersonalSafetyFactor(int index, int level) {
+  void setPersonalSafetyFactor(int index, double level) {
     if (index < 0 || index >= personalSafetyFactorLevels.length) return;
     personalSafetyFactorLevels[index] = RiskLevelScale.clamp(level);
     notifyListeners();
   }
 
-  void setDigitalFactor(int index, int level) {
+  void setDigitalFactor(int index, double level) {
     if (index < 0 || index >= digitalFactorLevels.length) return;
     digitalFactorLevels[index] = RiskLevelScale.clamp(level);
     notifyListeners();
