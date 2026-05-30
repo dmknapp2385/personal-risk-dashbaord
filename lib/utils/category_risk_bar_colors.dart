@@ -7,11 +7,6 @@ abstract final class CategoryRiskBarColors {
   static const Color low = Color(0xFF16A34A);
   static const Color high = Color(0xFFDC2626);
 
-  static Color lerpRisk(double score) {
-    final t = RiskScore.normalizedT(score);
-    return Color.lerp(low, high, t)!;
-  }
-
   /// Same fill as [CategoryMiniRiskBar] track.
   static Color fillForScore(double score) {
     final t = RiskScore.normalizedT(score);

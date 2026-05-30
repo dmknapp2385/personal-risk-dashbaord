@@ -14,8 +14,8 @@ class HealthTab extends StatelessWidget {
     required this.healthDetail,
   });
 
-  final List<int> healthLevels;
-  final void Function(int index, int level) onHealthFactorChanged;
+  final List<double> healthLevels;
+  final void Function(int index, double level) onHealthFactorChanged;
   final HealthRiskResult healthDetail;
 
   static const _scaleLabels = ['VL', 'L', 'M', 'H', 'VH'];

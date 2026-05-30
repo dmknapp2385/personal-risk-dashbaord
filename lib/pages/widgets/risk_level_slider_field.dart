@@ -4,6 +4,12 @@ import 'package:flutter/services.dart';
 import '../../utils/risk_level_scale.dart';
 
 /// Slider + percentage field + optional anchor presets (VL … VH).
+///
+/// The underlying value is a `double` on the 0.00–100.00 scale.
+///
+/// - Dragging the slider snaps to whole integers (e.g. 73.0).
+/// - Typing in the text field accepts up to 2 decimal places (e.g. 73.42),
+///   which is how the AI auto-fill writes precise values.
 class RiskLevelSliderField extends StatefulWidget {
   const RiskLevelSliderField({
     super.key,
@@ -12,8 +18,8 @@ class RiskLevelSliderField extends StatefulWidget {
     this.anchorLabels = RiskLevelScale.anchorLabels,
   });
 
-  final int value;
-  final ValueChanged<int> onChanged;
+  final double value;
+  final ValueChanged<double> onChanged;
 
   /// Labels for the five preset chips (default VL…VH).
   final List<String> anchorLabels;
@@ -29,7 +35,7 @@ class _RiskLevelSliderFieldState extends State<RiskLevelSliderField> {
   @override
   void initState() {
     super.initState();
-    _text = TextEditingController(text: '${widget.value}');
+    _text = TextEditingController(text: _formatForField(widget.value));
     _focus.addListener(_onFocusChange);
   }
 
@@ -43,7 +49,7 @@ class _RiskLevelSliderFieldState extends State<RiskLevelSliderField> {
   void didUpdateWidget(RiskLevelSliderField oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.value != widget.value && !_focus.hasFocus) {
-      _text.text = '${widget.value}';
+      _text.text = _formatForField(widget.value);
     }
   }
 
@@ -55,14 +61,19 @@ class _RiskLevelSliderFieldState extends State<RiskLevelSliderField> {
     super.dispose();
   }
 
+  /// "73.00" / "73.42" / "100.00" — always two decimal places so the field
+  /// width is stable and the user can see they're editing a precise value.
+  static String _formatForField(double v) =>
+      RiskLevelScale.clamp(v).toStringAsFixed(2);
+
   void _commitText() {
-    final parsed = int.tryParse(_text.text.trim());
+    final parsed = double.tryParse(_text.text.trim());
     if (parsed == null) {
-      _text.text = '${widget.value}';
+      _text.text = _formatForField(widget.value);
       return;
     }
     final v = RiskLevelScale.clamp(parsed);
-    _text.text = '$v';
+    _text.text = _formatForField(v);
     if (v != widget.value) {
       widget.onChanged(v);
     }
@@ -94,13 +105,13 @@ class _RiskLevelSliderFieldState extends State<RiskLevelSliderField> {
                 ),
                 child: Slider(
                   min: 0,
-                  max: RiskLevelScale.max.toDouble(),
-                  divisions: RiskLevelScale.max,
-                  value: v.toDouble(),
-                  label: '$v%',
+                  max: RiskLevelScale.max,
+                  divisions: RiskLevelScale.max.round(),
+                  value: v,
+                  label: '${v.toStringAsFixed(2)}%',
                   onChanged: (x) {
-                    final n = x.round();
-                    _text.text = '$n';
+                    final n = x.roundToDouble();
+                    _text.text = _formatForField(n);
                     widget.onChanged(n);
                   },
                 ),
@@ -108,15 +119,17 @@ class _RiskLevelSliderFieldState extends State<RiskLevelSliderField> {
             ),
             const SizedBox(width: 8),
             SizedBox(
-              width: 72,
+              width: 84,
               child: TextField(
                 controller: _text,
                 focusNode: _focus,
-                keyboardType: TextInputType.number,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 textAlign: TextAlign.center,
                 inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  LengthLimitingTextInputFormatter(3),
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                  LengthLimitingTextInputFormatter(6),
                 ],
                 decoration: InputDecoration(
                   isDense: true,
@@ -155,7 +168,7 @@ class _RiskLevelSliderFieldState extends State<RiskLevelSliderField> {
               visualDensity: VisualDensity.compact,
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               onPressed: () {
-                _text.text = '$anchor';
+                _text.text = _formatForField(anchor);
                 widget.onChanged(anchor);
               },
               backgroundColor: selected

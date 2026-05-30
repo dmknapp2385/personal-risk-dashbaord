@@ -5,8 +5,8 @@ import '../../models/driver_factor.dart';
 import '../../models/risk_category.dart';
 import '../../utils/risk_level_scale.dart';
 
-/// Home-page guidance tied to [topDrivers]: full playbooks for Financial and
-/// Digital / Privacy; short placeholder for other categories until modeled.
+/// Home-page guidance tied to [topDrivers]: an expandable mitigation playbook
+/// per top driver, with a focus/dismiss queue.
 class TopDriversNextStepsSection extends StatefulWidget {
   const TopDriversNextStepsSection({
     super.key,
@@ -21,19 +21,20 @@ class TopDriversNextStepsSection extends StatefulWidget {
 
   @override
   State<TopDriversNextStepsSection> createState() =>
-      _TopDriversNextStepsSectionState();
+      TopDriversNextStepsSectionState();
 }
 
-class _TopDriversNextStepsSectionState extends State<TopDriversNextStepsSection> {
+class TopDriversNextStepsSectionState extends State<TopDriversNextStepsSection> {
   /// Remaining drivers in the guided queue (mutates on dismiss).
   late List<DriverFactor> _queue;
 
   List<ExpansionTileController> _controllers = [];
+  List<GlobalKey> _blockKeys = [];
 
   static const Color _impactLow = Color(0xFF16A34A);
   static const Color _impactHigh = Color(0xFFDC2626);
 
-  static Color impactColorForLevel(int level) {
+  static Color impactColorForLevel(double level) {
     final t = RiskLevelScale.toNorm(level);
     return Color.lerp(_impactLow, _impactHigh, t)!;
   }
@@ -73,6 +74,46 @@ class _TopDriversNextStepsSectionState extends State<TopDriversNextStepsSection>
       _queue.length,
       (_) => ExpansionTileController(),
     );
+    _blockKeys = List<GlobalKey>.generate(
+      _queue.length,
+      (_) => GlobalKey(),
+    );
+  }
+
+  /// Public: scrolls the matching mitigation block into view and expands it.
+  /// If the driver was previously dismissed from the queue, it is re-added
+  /// at the top so the user can act on it again.
+  void focusDriver(DriverFactor driver) {
+    var index = _queue.indexWhere(
+      (e) => e.label == driver.label && e.category == driver.category,
+    );
+
+    if (index < 0) {
+      setState(() {
+        _queue.insert(0, driver);
+        _rebuildControllers();
+      });
+      index = 0;
+    }
+
+    final targetIndex = index;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (targetIndex >= _controllers.length) return;
+      final controller = _controllers[targetIndex];
+      if (!controller.isExpanded) {
+        controller.expand();
+      }
+      final ctx = _blockKeys[targetIndex].currentContext;
+      if (ctx != null) {
+        Scrollable.ensureVisible(
+          ctx,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOut,
+          alignment: 0.05,
+        );
+      }
+    });
   }
 
   void _scheduleExpandFirst() {
@@ -156,18 +197,21 @@ class _TopDriversNextStepsSectionState extends State<TopDriversNextStepsSection>
             else
               for (var i = 0; i < _queue.length; i++) ...[
                 if (i > 0) const SizedBox(height: 12),
-                _DriverMitigationBlock(
-                  key: ValueKey(
-                    '${_queue[i].label}|${_queue[i].category.name}|${_queue[i].level}|$i',
+                KeyedSubtree(
+                  key: _blockKeys[i],
+                  child: _DriverMitigationBlock(
+                    key: ValueKey(
+                      '${_queue[i].label}|${_queue[i].category.name}|${_queue[i].level}|$i',
+                    ),
+                    driver: _queue[i],
+                    scaleLabels: TopDriversNextStepsSection._scaleLabels,
+                    controller: _controllers[i],
+                    impactColor: impactColorForLevel(_queue[i].level),
+                    onOpenCategory: widget.onOpenCategory,
+                    onExpansionChanged: (expanded) =>
+                        _onExpansionChanged(i, expanded),
+                    onDismissFromQueue: () => _dismissAt(i),
                   ),
-                  driver: _queue[i],
-                  scaleLabels: TopDriversNextStepsSection._scaleLabels,
-                  controller: _controllers[i],
-                  impactColor: impactColorForLevel(_queue[i].level),
-                  onOpenCategory: widget.onOpenCategory,
-                  onExpansionChanged: (expanded) =>
-                      _onExpansionChanged(i, expanded),
-                  onDismissFromQueue: () => _dismissAt(i),
                 ),
               ],
           ],
@@ -263,7 +307,6 @@ class _DriverMitigationBlock extends StatelessWidget {
     final pct = RiskLevelScale.clamp(driver.level);
     final band = scaleLabels[RiskLevelScale.bandIndex(pct)];
     final steps = DriverMitigationSteps.stepsFor(driver);
-    final full = DriverMitigationSteps.hasFullPlaybook(driver.category);
 
     final borderSide =
         BorderSide(color: cs.outlineVariant.withValues(alpha: 0.45));
@@ -338,17 +381,16 @@ class _DriverMitigationBlock extends StatelessWidget {
                         ),
                       ],
                     ),
-                    if (full)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Text(
-                          'Start here:',
-                          style: theme.textTheme.labelLarge?.copyWith(
-                            color: cs.onSurfaceVariant,
-                            fontWeight: FontWeight.w600,
-                          ),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(
+                        'Start here:',
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: cs.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
+                    ),
                     for (final step in steps)
                       Padding(
                         padding: const EdgeInsets.only(left: 2, bottom: 8),
@@ -370,9 +412,6 @@ class _DriverMitigationBlock extends StatelessWidget {
                                 step,
                                 style: theme.textTheme.bodyMedium?.copyWith(
                                   height: 1.38,
-                                  fontStyle: full
-                                      ? FontStyle.normal
-                                      : FontStyle.italic,
                                 ),
                               ),
                             ),
@@ -397,7 +436,7 @@ class _ImpactChip extends StatelessWidget {
     required this.color,
   });
 
-  final int percent;
+  final double percent;
   final String bandLabel;
   final Color color;
 
@@ -411,7 +450,7 @@ class _ImpactChip extends StatelessWidget {
       backgroundColor: color.withValues(alpha: 0.18),
       side: BorderSide(color: color.withValues(alpha: 0.62)),
       label: Text(
-        'Impact: $percent% ($bandLabel)',
+        'Impact: ${percent.toStringAsFixed(2)}% ($bandLabel)',
         style: theme.textTheme.labelSmall?.copyWith(
           color: color,
           fontWeight: FontWeight.w800,

@@ -14,8 +14,8 @@ class FinancialTab extends StatelessWidget {
     required this.financialDetail,
   });
 
-  final List<int> financialLevels;
-  final void Function(int index, int level) onFinancialFactorChanged;
+  final List<double> financialLevels;
+  final void Function(int index, double level) onFinancialFactorChanged;
   final FinancialRiskResult financialDetail;
 
   static const _scaleLabels = ['VL', 'L', 'M', 'H', 'VH'];

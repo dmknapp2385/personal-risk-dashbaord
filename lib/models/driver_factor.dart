@@ -8,8 +8,9 @@ class DriverFactor {
   });
 
   final String label;
-  /// Self-reported stress / exposure for this driver (0–100).
-  final int level;
+
+  /// Self-reported stress / exposure for this driver (0.00–100.00).
+  final double level;
+
   final RiskCategory category;
 }
-

@@ -9,7 +9,7 @@ import '../../utils/risk_score.dart';
 import '../widgets/overall_score_category_bar.dart';
 import '../widgets/top_drivers_next_steps_section.dart';
 
-class OverallTab extends StatelessWidget {
+class OverallTab extends StatefulWidget {
   const OverallTab({
     super.key,
     required this.overallScore,
@@ -24,13 +24,25 @@ class OverallTab extends StatelessWidget {
   final void Function(RiskCategory category) onOpenCategory;
 
   @override
+  State<OverallTab> createState() => _OverallTabState();
+}
+
+class _OverallTabState extends State<OverallTab> {
+  final GlobalKey<TopDriversNextStepsSectionState> _nextStepsKey =
+      GlobalKey<TopDriversNextStepsSectionState>();
+
+  void _focusDriverInNextSteps(DriverFactor driver) {
+    _nextStepsKey.currentState?.focusDriver(driver);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ListView(
       children: [
         OverallRiskCard(
-          score: overallScore,
-          categoryScores: categoryScores,
-          onOpenCategory: onOpenCategory,
+          score: widget.overallScore,
+          categoryScores: widget.categoryScores,
+          onOpenCategory: widget.onOpenCategory,
         ),
         const SizedBox(height: 16),
         Text(
@@ -42,10 +54,10 @@ class OverallTab extends StatelessWidget {
           spacing: 14,
           runSpacing: 12,
           children: [
-            for (final c in categoryScores)
+            for (final c in widget.categoryScores)
               CategoryMiniRiskBar(
                 score: c,
-                onOpenCategory: onOpenCategory,
+                onOpenCategory: widget.onOpenCategory,
               ),
           ],
         ),
@@ -59,17 +71,19 @@ class OverallTab extends StatelessWidget {
           spacing: 12,
           runSpacing: 10,
           children: [
-            for (final d in topDrivers)
+            for (final d in widget.topDrivers)
               TopDriverChip(
                 driver: d,
-                onOpenCategory: onOpenCategory,
+                onTap: () => _focusDriverInNextSteps(d),
+                onOpenCategory: widget.onOpenCategory,
               ),
           ],
         ),
         const SizedBox(height: 20),
         TopDriversNextStepsSection(
-          topDrivers: topDrivers,
-          onOpenCategory: onOpenCategory,
+          key: _nextStepsKey,
+          topDrivers: widget.topDrivers,
+          onOpenCategory: widget.onOpenCategory,
         ),
       ],
     );
@@ -252,10 +266,15 @@ class TopDriverChip extends StatelessWidget {
     super.key,
     required this.driver,
     required this.onOpenCategory,
+    this.onTap,
   });
 
   final DriverFactor driver;
   final void Function(RiskCategory category) onOpenCategory;
+
+  /// If provided, used instead of [onOpenCategory] when the chip is tapped.
+  /// [onOpenCategory] is still kept as a fallback for callers that pass null.
+  final VoidCallback? onTap;
 
   static const _scaleLabels = ['VL', 'L', 'M', 'H', 'VH'];
 
@@ -271,10 +290,10 @@ class TopDriverChip extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final pct = RiskLevelScale.clamp(driver.level);
     final tabLabel =
-        '${_scaleLabels[RiskLevelScale.bandIndex(pct)]} · $pct%';
+        '${_scaleLabels[RiskLevelScale.bandIndex(pct)]} · ${pct.toStringAsFixed(2)}%';
 
     return InkWell(
-      onTap: () => onOpenCategory(driver.category),
+      onTap: onTap ?? () => onOpenCategory(driver.category),
       borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.all(10),

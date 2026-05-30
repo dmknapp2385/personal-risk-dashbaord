@@ -14,8 +14,8 @@ class CareerTab extends StatelessWidget {
     required this.careerDetail,
   });
 
-  final List<int> careerLevels;
-  final void Function(int index, int level) onCareerFactorChanged;
+  final List<double> careerLevels;
+  final void Function(int index, double level) onCareerFactorChanged;
   final CareerRiskResult careerDetail;
 
   static const _scaleLabels = ['VL', 'L', 'M', 'H', 'VH'];

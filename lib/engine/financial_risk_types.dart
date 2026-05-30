@@ -23,39 +23,15 @@ class FinancialRiskInputs {
     required this.factorLevels,
     required this.cross,
     this.horizonMonths = 12,
-    this.monteCarloSamples = 384,
-    this.randomSeed = 0xF15CA1E,
   });
 
-  /// Flat list aligned with [kFinancialSubcategoryDefs] factor order (each 0–100).
-  final List<int> factorLevels;
+  /// Flat list aligned with [kFinancialSubcategoryDefs] factor order
+  /// (each 0.00–100.00).
+  final List<double> factorLevels;
   final CategoryCrossSignals cross;
 
   /// Forward-looking horizon (months). Scales tail amplification gently.
   final int horizonMonths;
-
-  /// If &gt; 0, run Monte Carlo on factor stress; 0 skips (faster).
-  final int monteCarloSamples;
-
-  /// Base seed for reproducible scenarios.
-  final int randomSeed;
-}
-
-/// Summary of Monte Carlo distribution on final 0–1000 score.
-class FinancialMonteCarloSummary {
-  const FinancialMonteCarloSummary({
-    required this.mean,
-    required this.p10,
-    required this.p50,
-    required this.p90,
-    required this.samples,
-  });
-
-  final double mean;
-  final double p10;
-  final double p50;
-  final double p90;
-  final int samples;
 }
 
 /// Outcome of [FinancialRiskEngine.evaluate].
@@ -63,15 +39,8 @@ class FinancialRiskResult {
   const FinancialRiskResult({
     required this.pointNorm,
     required this.pointScore,
-    required this.subcategoryStress,
     required this.subcategoryShare,
     required this.subcategoryScores,
-    required this.collapseTerm,
-    required this.correlationMultiplier,
-    required this.horizonFactor,
-    required this.maskingPenalty,
-    required this.regimeTags,
-    this.monteCarlo,
   });
 
   /// Latent financial stress in \[0, 1\] after all layers.
@@ -80,30 +49,11 @@ class FinancialRiskResult {
   /// Mapped to \[0, 1000\] via [RiskScore.fromNorm].
   final double pointScore;
 
-  /// Per-subcategory stress \[0, 1\] (five entries).
-  final List<double> subcategoryStress;
-
   /// Normalized masses for UI bar (sum ≈ 1).
   final List<double> subcategoryShare;
 
   /// Per-subcategory scores on 0–1000 scale (for coloring mini-style segments).
   final List<double> subcategoryScores;
-
-  /// Non-linear “liquidity × leverage × concentration” coupling term (diagnostic).
-  final double collapseTerm;
-
-  /// Multiplier applied from cross-category signals.
-  final double correlationMultiplier;
-
-  /// Time-horizon amplification factor.
-  final double horizonFactor;
-
-  /// Extra latent stress added when low dispersion masks tail risk.
-  final double maskingPenalty;
-
-  /// Named regimes triggered by this profile (for logging / future UI).
-  final List<String> regimeTags;
-  final FinancialMonteCarloSummary? monteCarlo;
 }
 
 /// Mutable adaptive weights (persist to storage in a future iteration).

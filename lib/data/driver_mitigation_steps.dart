@@ -44,8 +44,6 @@ abstract final class DriverMitigationSteps {
     }
   }
 
-  static bool hasFullPlaybook(RiskCategory category) => true;
-
   static const Map<String, List<String>> _health = {
     'Chronic or acute conditions you manage': [
       'Keep a one-page health summary (diagnoses, meds, allergies, key providers) updated and accessible for emergencies.',

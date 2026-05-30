@@ -8,60 +8,26 @@ class CareerRiskInputs {
     required this.factorLevels,
     required this.cross,
     this.horizonMonths = 12,
-    this.monteCarloSamples = 384,
-    this.randomSeed = 0xC4E12C,
   });
 
-  final List<int> factorLevels;
+  final List<double> factorLevels;
   final AllCategoryPeerNorms cross;
 
   final int horizonMonths;
-  final int monteCarloSamples;
-  final int randomSeed;
-}
-
-class CareerMonteCarloSummary {
-  const CareerMonteCarloSummary({
-    required this.mean,
-    required this.p10,
-    required this.p50,
-    required this.p90,
-    required this.samples,
-  });
-
-  final double mean;
-  final double p10;
-  final double p50;
-  final double p90;
-  final int samples;
 }
 
 class CareerRiskResult {
   const CareerRiskResult({
     required this.pointNorm,
     required this.pointScore,
-    required this.subcategoryStress,
     required this.subcategoryShare,
     required this.subcategoryScores,
-    required this.collapseTerm,
-    required this.correlationMultiplier,
-    required this.horizonFactor,
-    required this.maskingPenalty,
-    required this.regimeTags,
-    this.monteCarlo,
   });
 
   final double pointNorm;
   final double pointScore;
-  final List<double> subcategoryStress;
   final List<double> subcategoryShare;
   final List<double> subcategoryScores;
-  final double collapseTerm;
-  final double correlationMultiplier;
-  final double horizonFactor;
-  final double maskingPenalty;
-  final List<String> regimeTags;
-  final CareerMonteCarloSummary? monteCarlo;
 }
 
 class CareerAdaptiveState {
