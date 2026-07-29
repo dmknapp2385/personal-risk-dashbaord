@@ -4,12 +4,9 @@ import 'package:http/http.dart' as http;
 class OllamaService {
   static const String baseUrl = 'http://localhost:11434';
 
-  /// Default for heavier tasks (e.g. Personal Safety autofill).
-  static const String defaultModel = 'qwen2.5:7b';
-
-  /// Smaller/faster model for the home-page AI Insight overview.
+  /// Single model for the whole app (AI Insight + Personal Safety autofill).
   /// Pull with: ollama pull qwen2.5:3b
-  static const String fastModel = 'qwen2.5:3b';
+  static const String defaultModel = 'qwen2.5:3b';
 
   /// Asks Ollama with `format: 'json'`, forcing the model to return a valid
   /// JSON string. Caller is responsible for parsing/validating the shape.

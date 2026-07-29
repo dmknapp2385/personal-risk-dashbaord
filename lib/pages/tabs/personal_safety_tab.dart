@@ -389,9 +389,9 @@ class _AutofillResultPanel extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'Common cause: Ollama is not running, the configured model is '
-              'not pulled, or the model returned malformed JSON. Try again or '
-              'pull a larger model with: ollama pull llama3.1:8b',
+              'Common cause: Ollama is not running, or qwen2.5:3b is not '
+              'pulled (ollama pull qwen2.5:3b). On Chrome, also set '
+              'OLLAMA_ORIGINS=* and restart Ollama.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: cs.onSurfaceVariant,
                 height: 1.35,

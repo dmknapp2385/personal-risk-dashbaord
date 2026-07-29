@@ -118,20 +118,18 @@ class AiInsightErrorDialog extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(
-              'Common causes:',
+              'Chrome / web checklist:',
               style: theme.textTheme.bodySmall?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 4),
             Text(
-              '• Ollama is not running, or was not started with '
-              'OLLAMA_ORIGINS=* so the browser can call it.\n'
-              '• The configured model has not been pulled '
-              '(try: ollama pull llama3.2:1b).\n'
-              '• The model returned malformed JSON. Try a bigger model '
-              '(ollama pull llama3.1:8b) and update defaultModel in '
-              'ollama_service.dart.',
+              '• Quit Ollama, set user env var OLLAMA_ORIGINS=*, restart Ollama.\n'
+              '• Model must be pulled: ollama pull qwen2.5:3b\n'
+              '• Test in Chrome: open http://localhost:11434\n'
+              '• DevTools → Network → /api/generate (CORS shows as failed fetch)\n'
+              '• Desktop workaround: flutter run -d windows (no CORS)',
               style: theme.textTheme.bodySmall?.copyWith(height: 1.4),
             ),
           ],

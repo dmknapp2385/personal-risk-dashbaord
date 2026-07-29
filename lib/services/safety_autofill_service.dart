@@ -34,8 +34,8 @@ class SafetyAutofillResult {
 }
 
 /// How many factor levels we'll tolerate the model being off by before we
-/// give up and surface an error. Small models like llama3.2:1b will sometimes
-/// drop one entry; padding with the neutral value is more useful than failing.
+/// give up and surface an error. Smaller models sometimes drop one entry;
+/// padding with the neutral value is more useful than failing.
 const int _kAutofillLengthTolerance = 3;
 
 /// Sample locations the UI surfaces as quick-pick chips. Each maps cleanly to
@@ -182,7 +182,7 @@ class SafetyAutofillService {
       if (diff > _kAutofillLengthTolerance) {
         throw FormatException(
           'Expected $expected factors, got $originalCount. '
-          'Try a larger model (e.g. llama3.1:8b).',
+          'Try again, or confirm the model is installed: ollama pull qwen2.5:3b.',
         );
       }
       if (originalCount < expected) {
@@ -197,8 +197,7 @@ class SafetyAutofillService {
       warning = 'Model returned $originalCount factors instead of $expected. '
           'Repaired by '
           '${originalCount < expected ? "padding with 50 (neutral)" : "truncating extras"}.'
-          ' Pull a larger model for sharper output: '
-          'ollama pull llama3.1:8b';
+          ' Retry autofill if results look off.';
     }
 
     final summary = (decoded['summary'] as String?)?.trim() ?? '';

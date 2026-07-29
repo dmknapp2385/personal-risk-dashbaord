@@ -132,7 +132,6 @@ class DashboardInsightService {
 
     final raw = await _ollama.askJson(
       buf.toString(),
-      model: OllamaService.fastModel,
       schema: schema,
       options: const {
         'num_predict': 550,
